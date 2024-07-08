@@ -15,7 +15,7 @@ func main() {
 		fmt.Fprintf(w, "Hello World\n")
 	})
 
-    middlewares := middleware.Use(
+	middlewares := middleware.Use(
 		middleware.RequestLogger,
 	)
 
