@@ -1,36 +1,73 @@
 package utils
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/Hanyue-s-FYP/Marcom-Backend/modules"
 )
 
 // creates all the necessary header and writes obj in JSON to the response
-func ResponseJSON[T any](obj T, w http.ResponseWriter) {
-
+func ResponseJSON[T any](w http.ResponseWriter, obj T, statusCode int) {
+	jsonBytes, err := json.Marshal(obj)
+	if err != nil {
+		// don't need special message for internal server error, at least don't need to be returned to the client
+		ResponseError(w, HttpError{
+			Code:       http.StatusInternalServerError,
+			LogMessage: fmt.Sprintf("failed to marshal JSON: %v", err),
+		})
+		return
+	}
+	w.WriteHeader(statusCode)
+	w.Header().Set("Content-Type", "application/json")
+	fmt.Fprint(w, string(jsonBytes))
 }
 
 type HttpError struct {
 	// error code
 	Code int
-	// optional message that is sent back in JSON to the requester
+	// optional message that is sent back to the requester, if nil, will get the message through golang's net/http's StatusText() func
 	Message string
+	// message to be logged for more context on what exactly is the error, this message is not sent back to the requester
+	LogMessage string
 }
 
 func (h HttpError) Error() string {
-	return fmt.Sprintf("%d: %s", h.Code, h.Message)
+	return fmt.Sprintf("HttpError %d: %s (response message: %s)", h.Code, h.LogMessage, h.Message)
 }
 
 // creates all the necessary header and writes e to the response
-func ResponseError(e error, w http.ResponseWriter) {
+func ResponseError(w http.ResponseWriter, e HttpError) {
 
 }
 
 // creates a http.Handler with my own function type (I prefer making handlers or controllers to return concrete object/struct if success and return error if anything goes wrong, complying with go's error handling way)
-func MakeHttpHandler[T any](handler modules.ApiFunc[T]) func(http.ResponseWriter, *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {}
+// go don't have default parameters, and since for my use case only C operations will return a diff status code for success cases (I am not trying to rebuild a whole new full-fledged net framework :))), will use variadic parameters and determine if a diff code should be used
+// the bad thing is there's ntg stopping me from providing more :((
+func MakeHttpHandler[T any](handler modules.ApiFunc[T], customCode ...int) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		finalCode := http.StatusOK
+		if len(customCode) > 0 {
+			finalCode = customCode[0]
+		}
+		if obj, err := handler(w, r); err != nil {
+			log.Fatal(err)
+			if errors.As(err, &HttpError{}) {
+				ResponseError(w, err.(HttpError))
+			} else {
+				// should actually panic because not possible returned error is not HttpError, it would be programmer's mistake alrd or some not reversible error alrd, but for gracefulness, will just log, and response with internal server error and everything proceeds
+				ResponseError(w, HttpError{
+					Code:       http.StatusInternalServerError,
+					LogMessage: fmt.Sprintf("expecting HttpError, got other error: %v", err),
+				})
+			}
+		} else {
+			ResponseJSON(w, obj, finalCode)
+		}
+	}
 }
 
 // Solely for QoL development (like adding ternary to Go :))
