@@ -14,13 +14,13 @@ func ResponseJSON[T any](obj T, w http.ResponseWriter) {
 
 type HttpError struct {
 	// error code
-	code int
+	Code int
 	// optional message that is sent back in JSON to the requester
-	message string
+	Message string
 }
 
 func (h HttpError) Error() string {
-	return fmt.Sprintf("%d: %s", h.code, h.message)
+	return fmt.Sprintf("%d: %s", h.Code, h.Message)
 }
 
 // creates all the necessary header and writes e to the response
