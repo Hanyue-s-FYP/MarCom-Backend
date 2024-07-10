@@ -1,12 +1,10 @@
 package models
 
-import "database/sql"
-
 type Environment struct {
+	Business
 	Products    []Product
 	Agents      []Agent
 	ID          int
-	Name        sql.NullString
-	Description sql.NullString
-	BusinessID  int
+	Name        string
+	Description string
 }

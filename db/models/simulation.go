@@ -1,19 +1,17 @@
 package models
 
-import "database/sql"
-
 type SimulationCycle struct {
 	ID           int
-	Profit       sql.NullFloat64
+	Profit       float64
 	AgentActions []CycleAgentAction
 }
 
 type CycleAgentAction struct {
+	Agent
 	ID                int
-	Prompt            sql.NullString
-	ActionType        sql.NullString
-	ActionDescription sql.NullString
-	AgentID           int
+	Prompt            string
+	ActionType        int
+	ActionDescription string
 }
 
 type Simulation struct {
@@ -21,8 +19,8 @@ type Simulation struct {
 	Business
 	SimulationCycles  []SimulationCycle
 	ID                int
-	Name              sql.NullString
-	MaxCycleCount     sql.NullInt64
-	IsPriceOptEnabled sql.NullBool
-	Status            sql.NullString
+	Name              string
+	MaxCycleCount     int
+	IsPriceOptEnabled bool
+	Status            int // may change to string later, but enums in go are just ints
 }

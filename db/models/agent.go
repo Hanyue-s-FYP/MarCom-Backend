@@ -4,7 +4,7 @@ import "database/sql"
 
 type Agent struct {
 	ID                 int
-	Name               sql.NullString
+	Name               string
 	GeneralDescription sql.NullString
 	BusinessID         int
 	Attributes         []AgentAttribute
@@ -13,6 +13,6 @@ type Agent struct {
 // no need embed agent here, just put all agent attributes relevant to the agent to the agent struct
 type AgentAttribute struct {
 	ID    int
-	Key   sql.NullString
-	Value sql.NullString
+	Key   string
+	Value string
 }

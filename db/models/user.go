@@ -1,15 +1,13 @@
 package models
 
-import "database/sql"
-
 type User struct {
 	ID          int
 	Username    string
 	Password    string
-	DisplayName sql.NullString
-	Email       sql.NullString
-	Status      sql.NullString
-	PhoneNumber sql.NullString
+	DisplayName string
+	Email       string
+	Status      string
+	PhoneNumber string
 }
 
 type Investor struct {
@@ -18,9 +16,8 @@ type Investor struct {
 }
 
 type Business struct {
-	User
 	ID           int
-	Description  sql.NullString
-	BusinessType sql.NullString
-	CoverImgPath sql.NullString
+	Description  string
+	BusinessType string
+	CoverImgPath string
 }
