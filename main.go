@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 
 	"github.com/Hanyue-s-FYP/Marcom-Backend/middleware"
@@ -26,6 +25,7 @@ func main() {
 
 	fmt.Println("Starting to listen on port :8080")
 	if err := server.ListenAndServe(); err != nil {
-		log.Fatal(fmt.Sprintf("Failed to start and listen to port 8080: %v", err))
+		fmt.Printf("Failed to start and listen to port 8080: %v\n", err)
+		panic(err) // cant even start listen d what else to do lol
 	}
 }

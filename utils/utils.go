@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 
 	"github.com/Hanyue-s-FYP/Marcom-Backend/modules"
@@ -36,11 +36,17 @@ type HttpError struct {
 }
 
 func (h HttpError) Error() string {
-	return fmt.Sprintf("HttpError %d: %s (response message: %s)", h.Code, h.LogMessage, h.Message)
+	return fmt.Sprintf("HttpError %d: %s ", h.Code, h.LogMessage) +
+		If(
+			h.Message != "",
+			fmt.Sprintf("(response message: %s)", h.Message),
+			"",
+		)
 }
 
 // creates all the necessary header and writes e to the response
 func ResponseError(w http.ResponseWriter, e HttpError) {
+	slog.Error(e.Error())
 
 }
 
@@ -54,7 +60,6 @@ func MakeHttpHandler[T any](handler modules.ApiFunc[T], customCode ...int) func(
 			finalCode = customCode[0]
 		}
 		if obj, err := handler(w, r); err != nil {
-			log.Fatal(err)
 			if errors.As(err, &HttpError{}) {
 				ResponseError(w, err.(HttpError))
 			} else {
