@@ -4,7 +4,7 @@ CREATE TABLE Users (
     password TEXT NOT NULL,
     display_name TEXT NOT NULL,
     email TEXT NOT NULL,
-    status TEXT NOT NULL,
+    status INTEGER NOT NULL,
     phone_number TEXT NOT NULL
 );
 

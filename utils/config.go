@@ -3,6 +3,7 @@ package utils
 import (
 	"bufio"
 	"fmt"
+	"log/slog"
 	"os"
 	"strings"
 )
@@ -38,9 +39,10 @@ func loadConfig(filename string) error {
 	return nil
 }
 
-func NewConfig(filename string) *Config {
-	var config Config
+// store as global so when getting config for the second time no need to create a new one
+var config Config
 
+func NewConfig(filename string) *Config {
 	fmt.Printf("Loading Config from file `%s`\r\n", filename)
 	if err := loadConfig(filename); err != nil {
 		config = Config{
@@ -58,5 +60,14 @@ func NewConfig(filename string) *Config {
 		}
 	}
 
+	return &config
+}
+
+func GetConfig() *Config {
+	if config == (Config{}) {
+		// programmer error, should call NewConfig to initialize first
+		slog.Error("config is not initialized")
+		panic("config is not initialized")
+	}
 	return &config
 }
