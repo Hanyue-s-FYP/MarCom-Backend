@@ -13,7 +13,8 @@ import (
 
 // stuffs embeded in the jwt token generated
 type JWTClaims struct {
-	Username string
+	UserID int
+    Role int // TODO create the enum for roles
 	jwt.RegisteredClaims
 }
 
@@ -21,22 +22,23 @@ type LoginResponse struct {
 	Token string
 }
 
-func Login(w http.ResponseWriter, r *http.Request) (LoginResponse, error) {
+func Login(w http.ResponseWriter, r *http.Request) (*LoginResponse, error) {
 	// generates jwt token with HS256 method
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, JWTClaims{
-		Username: "testing123",
+		UserID: 1, // TODO change to user id from db
+        Role: 1,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)), // default to 24 hour expiry
 		},
 	})
 
-	if tokStr, err := token.SignedString([]byte("")); err != nil {
-		return LoginResponse{}, utils.HttpError{
+	if tokStr, err := token.SignedString([]byte("very-secure-key")); err != nil {
+		return nil, utils.HttpError{
 			Code:       http.StatusInternalServerError,
 			Message:    "failed to generate jwt token",
 			LogMessage: fmt.Sprintf("%v", err),
 		}
 	} else {
-		return LoginResponse{tokStr}, nil
+		return &LoginResponse{tokStr}, nil
 	}
 }

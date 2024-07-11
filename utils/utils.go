@@ -11,8 +11,8 @@ import (
 )
 
 // creates all the necessary header and writes obj in JSON to the response
-func ResponseJSON[T any](w http.ResponseWriter, obj T, statusCode int) {
-	jsonBytes, err := json.Marshal(obj)
+func ResponseJSON[T any](w http.ResponseWriter, obj *T, statusCode int) {
+	jsonBytes, err := json.Marshal(*obj)
 	if err != nil {
 		// don't need special message for internal server error, at least don't need to be returned to the client
 		ResponseError(w, HttpError{
@@ -47,7 +47,7 @@ func (h HttpError) Error() string {
 // creates all the necessary header and writes e to the response
 func ResponseError(w http.ResponseWriter, e HttpError) {
 	slog.Error(e.Error())
-
+	ResponseJSON(w, &struct{ Message string }{Message: e.Message}, e.Code)
 }
 
 // creates a http.Handler with my own function type (I prefer making handlers or controllers to return concrete object/struct if success and return error if anything goes wrong, complying with go's error handling way)

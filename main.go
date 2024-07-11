@@ -9,13 +9,12 @@ import (
 
 func main() {
 	router := http.NewServeMux()
-
-	router.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "Hello World\n")
-	})
+    
+    SetupRouter(router)
 
 	middlewares := middleware.Use(
 		middleware.RequestLogger,
+        middleware.Auth,
 	)
 
 	server := http.Server{

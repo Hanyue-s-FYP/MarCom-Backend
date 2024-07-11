@@ -1,11 +1,16 @@
 package middleware
 
 import (
+	"fmt"
+	"log/slog"
 	"net/http"
 	"slices"
+	"strconv"
 	"strings"
 
+	"github.com/Hanyue-s-FYP/Marcom-Backend/modules/user"
 	"github.com/Hanyue-s-FYP/Marcom-Backend/utils"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 // the routes that requires authentication
@@ -27,9 +32,29 @@ func Auth(next http.Handler) http.Handler {
 					LogMessage: "no auth token",
 				})
 			} else {
-
-				next.ServeHTTP(w, r)
+				jwtToken, err := jwt.ParseWithClaims(token[1], &user.JWTClaims{}, func(t *jwt.Token) (interface{}, error) {
+					return []byte("very-secure-key"), nil // TODO change to get secret key
+				})
+				if err != nil {
+					utils.ResponseError(w, utils.HttpError{
+						Code:       http.StatusUnauthorized,
+						Message:    "Authentication token does not exist or is malformed",
+						LogMessage: err.Error(),
+					})
+                } else if claims, ok := jwtToken.Claims.(*user.JWTClaims); ok {
+                    slog.Info(fmt.Sprintf("User ID: %d, Expires: %s", claims.UserID, claims.ExpiresAt))
+                    r.Header.Add("userId", strconv.Itoa(claims.UserID)) 
+                    next.ServeHTTP(w, r)
+                } else {
+					utils.ResponseError(w, utils.HttpError{
+						Code:       http.StatusUnauthorized,
+						Message:    "Authentication token does not exist or is malformed",
+						LogMessage: err.Error(),
+					})
+                }
 			}
+		} else {
+			next.ServeHTTP(w, r)
 		}
 	})
 }
