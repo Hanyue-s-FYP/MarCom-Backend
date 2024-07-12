@@ -21,6 +21,7 @@ func ResponseJSON[T any](w http.ResponseWriter, obj *T, statusCode int) {
 		})
 		return
 	}
+    slog.Info(fmt.Sprintf("%d %s", statusCode, string(jsonBytes)))
 	w.WriteHeader(statusCode)
 	w.Header().Set("Content-Type", "application/json")
 	fmt.Fprint(w, string(jsonBytes))
@@ -84,3 +85,10 @@ func If[T any](cond bool, valTrue, valFalse T) T {
 		return valFalse
 	}
 }
+
+// Either type is a workaround for union types in go, eg. getMe can return either investor or business
+// can get which type is value by using type assertions
+type Either[A, B any] struct {
+    Val any
+}
+

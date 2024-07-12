@@ -10,7 +10,7 @@ import (
 
 func SetupRouter(r *http.ServeMux) {
 	// testing routes
-	r.HandleFunc("GET /auth_test", func(w http.ResponseWriter, r *http.Request) {
+	r.HandleFunc("GET /auth-test", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "Welcome to auth test %s\n", r.Header.Get("userId"))
 	})
 
@@ -20,4 +20,5 @@ func SetupRouter(r *http.ServeMux) {
 
     // Auth routes
     r.HandleFunc("POST /login", utils.MakeHttpHandler(user.Login))
+    r.HandleFunc("POST /register-business", utils.MakeHttpHandler(user.RegisterBusiness, 201))
 }

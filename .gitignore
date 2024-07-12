@@ -11,3 +11,6 @@ marcom.db
 # data files (in future, used to store files sent by user)
 user-files/**
 
+# air (hot reload eh) used directory
+tmp/**
+
