@@ -14,7 +14,10 @@ import (
 )
 
 // the routes that requires authentication
-var authRoutes []string = []string{"/auth_test"}
+var authRoutes []string = []string{
+	"/auth_test", // just to test auth middleware is working, will remove
+	"/product",   // everything related to product should be authenticated with business id (for now, revisit to allow for investors)
+}
 
 func Auth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -41,17 +44,17 @@ func Auth(next http.Handler) http.Handler {
 						Message:    "Authentication token does not exist or is malformed",
 						LogMessage: err.Error(),
 					})
-                } else if claims, ok := jwtToken.Claims.(*user.JWTClaims); ok {
-                    slog.Info(fmt.Sprintf("User ID: %d, Expires: %s", claims.UserID, claims.ExpiresAt))
-                    r.Header.Add("userId", strconv.Itoa(claims.UserID)) 
-                    next.ServeHTTP(w, r)
-                } else {
+				} else if claims, ok := jwtToken.Claims.(*user.JWTClaims); ok {
+					slog.Info(fmt.Sprintf("User ID: %d, Expires: %s", claims.UserID, claims.ExpiresAt))
+					r.Header.Add("userId", strconv.Itoa(claims.UserID))
+					next.ServeHTTP(w, r)
+				} else {
 					utils.ResponseError(w, utils.HttpError{
 						Code:       http.StatusUnauthorized,
 						Message:    "Authentication token does not exist or is malformed",
-						LogMessage: err.Error(),
+						LogMessage: "authentication token does not exist or is malformed: unable to parse jwt claims",
 					})
-                }
+				}
 			}
 		} else {
 			next.ServeHTTP(w, r)

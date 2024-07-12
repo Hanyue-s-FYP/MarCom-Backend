@@ -6,6 +6,7 @@ build/*
 .env.development
 
 # db file
+*.db
 marcom.db
 
 # data files (in future, used to store files sent by user)
