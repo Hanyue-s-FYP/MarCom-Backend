@@ -48,62 +48,61 @@ type businessModel struct{}
 
 var BusinessModel *businessModel
 
-func (_ *businessModel) Create(b Business) error {
-    tx, err := db.GetDB().Begin()
+func (*businessModel) Create(b Business) error {
+	tx, err := db.GetDB().Begin()
 
-    if err != nil {
-        return err
-    }
+	if err != nil {
+		return err
+	}
 
-    userQuery := `
+	userQuery := `
         INSERT INTO Users (username, password, display_name, email, status, phone_number)
         VALUES (?, ?, ?, ?, ?, ?)
     `
-    res, err := tx.Exec(userQuery, b.Username, b.Password, b.DisplayName, b.Email, b.Status, b.PhoneNumber)
-    if err != nil {
-        tx.Rollback()
-        return err
-    }
+	res, err := tx.Exec(userQuery, b.Username, b.Password, b.DisplayName, b.Email, b.Status, b.PhoneNumber)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
 
-    userID, err := res.LastInsertId()
-    if err != nil {
-        tx.Rollback()
-        return err
-    }
+	userID, err := res.LastInsertId()
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
 
-    businessQuery := `
-        INSERT INTO Businesses (description, business_type, cover_img_path, user_id)
-        VALUES (?, ?, ?, ?)
+	businessQuery := `
+			INSERT INTO Businesses (description, business_type, cover_img_path, user_id)
+			VALUES (?, ?, ?, ?)
     `
-    _, err = tx.Exec(businessQuery, b.Description, b.BusinessType, b.CoverImgPath, userID)
-    if err != nil {
-        tx.Rollback()
-        return err
-    }
+	_, err = tx.Exec(businessQuery, b.Description, b.BusinessType, b.CoverImgPath, userID)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
 
-    err = tx.Commit()
-    if err != nil {
-        tx.Rollback()
-        return err
-    }
-
+	err = tx.Commit()
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
 
 	return nil
 }
 
 var ErrBusinessNotFound error = errors.New("business not found")
 
-func (_ *businessModel) GetByID(id int) (*Business, error) {
+func (*businessModel) GetByID(id int) (*Business, error) {
 	query := `
-        SELECT
-            u.id, u.username, u.password, u.display_name, u.email, u.status, u.phone_number,
-            b.id, b.description, b.business_type, b.cover_img_path
-        FROM
-            Users u
-        JOIN
-            Businesses b ON u.id = b.user_id
-        WHERE
-            u.id = ?
+			SELECT
+					u.id, u.username, u.password, u.display_name, u.email, u.status, u.phone_number,
+					b.id, b.description, b.business_type, b.cover_img_path
+			FROM
+					Users u
+			JOIN
+					Businesses b ON u.id = b.user_id
+			WHERE
+					u.id = ?
     `
 	row := db.GetDB().QueryRow(query, id)
 	var business Business
@@ -121,17 +120,17 @@ func (_ *businessModel) GetByID(id int) (*Business, error) {
 
 	return &business, nil
 }
-func (_ *businessModel) GetByUsername(username string) (*Business, error) {
+func (*businessModel) GetByUsername(username string) (*Business, error) {
 	query := `
-        SELECT
-            u.id, u.username, u.password, u.display_name, u.email, u.status, u.phone_number,
-            b.id, b.description, b.business_type, b.cover_img_path
-        FROM
-            Users u
-        JOIN
-            Businesses b ON u.id = b.user_id
-        WHERE
-            u.username = ?
+			SELECT
+					u.id, u.username, u.password, u.display_name, u.email, u.status, u.phone_number,
+					b.id, b.description, b.business_type, b.cover_img_path
+			FROM
+					Users u
+			JOIN
+					Businesses b ON u.id = b.user_id
+			WHERE
+					u.username = ?
     `
 	row := db.GetDB().QueryRow(query, username)
 	var business Business
@@ -149,4 +148,3 @@ func (_ *businessModel) GetByUsername(username string) (*Business, error) {
 
 	return &business, nil
 }
-
