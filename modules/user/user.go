@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/Hanyue-s-FYP/Marcom-Backend/db/models"
+	"github.com/Hanyue-s-FYP/Marcom-Backend/modules"
 	"github.com/Hanyue-s-FYP/Marcom-Backend/utils"
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
@@ -22,13 +23,9 @@ type JWTClaims struct {
 	jwt.RegisteredClaims
 }
 
-type RegisterResponse struct {
-	Message string
-}
-
 // allows posting to this route to create a business account, validations are done at front end
 // TODO revisit when have more time and do backend validations as well
-func RegisterBusiness(w http.ResponseWriter, r *http.Request) (*RegisterResponse, error) {
+func RegisterBusiness(w http.ResponseWriter, r *http.Request) (*modules.ExecResponse, error) {
 	var user models.Business
 
 	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
@@ -71,7 +68,7 @@ func RegisterBusiness(w http.ResponseWriter, r *http.Request) (*RegisterResponse
 		}
 	}
 
-	return &RegisterResponse{"Successfully registered a business account, please login"}, nil
+	return &modules.ExecResponse{Message: "Successfully registered a business account, please login"}, nil
 }
 
 type LoginUserForm struct {
@@ -100,9 +97,9 @@ func Login(w http.ResponseWriter, r *http.Request) (*LoginResponse, error) {
 	if err != nil {
 		if errors.Is(err, models.ErrBusinessNotFound) {
 			return nil, utils.HttpError{
-				Code:    http.StatusUnauthorized,
-				Message: "Failed to login, please check credentials",
-                LogMessage: "failed to login, account not found",
+				Code:       http.StatusUnauthorized,
+				Message:    "Failed to login, please check credentials",
+				LogMessage: "failed to login, account not found",
 			}
 		}
 		return nil, utils.HttpError{
@@ -115,9 +112,9 @@ func Login(w http.ResponseWriter, r *http.Request) (*LoginResponse, error) {
 	// verify if the password can match stored hash, bcrypt does not recommend hashing the password again, instead, use ComparePasswordWithHash (gonna read more on this)
 	if err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(creds.Password)); err != nil {
 		return nil, utils.HttpError{
-			Code:    http.StatusUnauthorized,
-			Message: "Failed to login, please check credentials",
-            LogMessage: fmt.Sprintf("failed to login: %v", err),
+			Code:       http.StatusUnauthorized,
+			Message:    "Failed to login, please check credentials",
+			LogMessage: fmt.Sprintf("failed to login: %v", err),
 		}
 	}
 
