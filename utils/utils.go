@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"slices"
 
 	"github.com/Hanyue-s-FYP/Marcom-Backend/modules"
 )
@@ -21,7 +22,7 @@ func ResponseJSON[T any](w http.ResponseWriter, obj *T, statusCode int) {
 		})
 		return
 	}
-    slog.Info(fmt.Sprintf("%d %s", statusCode, string(jsonBytes)))
+	slog.Info(fmt.Sprintf("%d %s", statusCode, string(jsonBytes)))
 	w.WriteHeader(statusCode)
 	w.Header().Set("Content-Type", "application/json")
 	fmt.Fprint(w, string(jsonBytes))
@@ -86,9 +87,22 @@ func If[T any](cond bool, valTrue, valFalse T) T {
 	}
 }
 
+// returns every elements that are in `ori` but not in `compared`
+func NotIn[T any](ori, compared []T, compareFunc func(a, b T) bool) []T {
+	var difference []T
+	for _, elem := range ori {
+		if !slices.ContainsFunc(compared, func(e T) bool {
+			return compareFunc(elem, e)
+		}) {
+			difference = append(difference, elem)
+		}
+	}
+
+	return difference
+}
+
 // Either type is a workaround for union types in go, eg. getMe can return either investor or business
 // can get which type is value by using type assertions
 type Either[A, B any] struct {
-    Val any
+	Val any
 }
-
