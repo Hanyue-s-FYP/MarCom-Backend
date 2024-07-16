@@ -47,6 +47,7 @@ func Auth(next http.Handler) http.Handler {
 				} else if claims, ok := jwtToken.Claims.(*user.JWTClaims); ok {
 					slog.Info(fmt.Sprintf("User ID: %d, Expires: %s", claims.UserID, claims.ExpiresAt))
 					r.Header.Add("userId", strconv.Itoa(claims.UserID))
+                    r.Header.Add("role", strconv.Itoa(int(claims.Role)))
 					next.ServeHTTP(w, r)
 				} else {
 					utils.ResponseError(w, utils.HttpError{
