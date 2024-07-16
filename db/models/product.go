@@ -74,6 +74,31 @@ func (*productModel) GetAll() ([]Product, error) {
 	return products, nil
 }
 
+func (*productModel) GetByBusinessID(id int) ([]Product, error) {
+    query := `
+        SELECT id, name, description, price, cost, business_id
+        FROM Products
+        WHERE business_id = ?
+    `
+    rows, err := db.GetDB().Query(query, id)
+    if err != nil {
+        return nil, err
+    }
+    defer rows.Close()
+
+    var products []Product
+    for rows.Next() {
+        var product Product
+        err := rows.Scan(&product.ID, &product.Name, &product.Description, &product.Price, &product.Cost, &product.BusinessID)
+        if err != nil {
+            return nil, err
+        }
+        products = append(products, product)
+    }
+
+    return products, nil
+}
+
 // p itself already contains the id for the product to be changed
 func (*productModel) Update(p Product) error {
 	query := `
