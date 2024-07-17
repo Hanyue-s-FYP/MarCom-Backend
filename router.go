@@ -13,11 +13,11 @@ import (
 func SetupRouter(r *http.ServeMux) {
 	// testing routes
 	r.HandleFunc("GET /auth-test", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "Welcome to auth test %s\n", r.Header.Get("userId"))
+        utils.ResponseJSON(w, &struct{Message string}{Message: fmt.Sprintf("Welcome to auth test %s\n", r.Header.Get("userId"))}, 200)
 	})
 
 	r.HandleFunc("GET /hello", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintln(w, "Hello World")
+        utils.ResponseJSON(w, &struct{Message string}{Message: "world"}, 200)
 	})
 
 	// Auth routes
