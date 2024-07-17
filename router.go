@@ -11,6 +11,10 @@ import (
 )
 
 func SetupRouter(r *http.ServeMux) {
+    r.HandleFunc("OPTIONS /*", func(w http.ResponseWriter, r *http.Request) {
+        w.WriteHeader(http.StatusOK) // web (or axios) requires preflight to response with status ok for some reason
+    })
+
 	// testing routes
 	r.HandleFunc("GET /auth-test", func(w http.ResponseWriter, r *http.Request) {
         utils.ResponseJSON(w, &struct{Message string}{Message: fmt.Sprintf("Welcome to auth test %s\n", r.Header.Get("userId"))}, 200)

@@ -10,17 +10,18 @@ import (
 
 func main() {
 	router := http.NewServeMux()
-    config := utils.NewConfig(".env.development")
-    
-    SetupRouter(router)
+	config := utils.NewConfig(".env.development")
+
+	SetupRouter(router)
 
 	middlewares := middleware.Use(
+		middleware.Cors,
 		middleware.RequestLogger,
-        middleware.Auth,
+		middleware.Auth,
 	)
 
 	server := http.Server{
-        Addr:    fmt.Sprintf(":%s", config.PORT),
+		Addr:    fmt.Sprintf(":%s", config.PORT),
 		Handler: middlewares(router),
 	}
 

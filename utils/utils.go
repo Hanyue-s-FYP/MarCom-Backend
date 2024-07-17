@@ -24,7 +24,6 @@ func ResponseJSON[T any](w http.ResponseWriter, obj *T, statusCode int) {
 	}
 	slog.Info(fmt.Sprintf("%d %s", statusCode, string(jsonBytes)))
     w.Header().Set("Content-Type", "application/json")
-    w.Header().Set("Access-Control-Allow-Origin", "*") // for now, for simplicity allow from all origin first
 	w.WriteHeader(statusCode)
 	fmt.Fprint(w, string(jsonBytes))
 }
