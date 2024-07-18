@@ -120,8 +120,8 @@ func Login(w http.ResponseWriter, r *http.Request) (*LoginResponse, error) {
 
 	// generates jwt token with HS256 method
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, JWTClaims{
-		UserID: 1,
-		Role:   1,
+		UserID: user.ID, // depending on role if business then is BusinessID
+		Role:   1, // default to business first now dont care about investor gok
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)), // default to 24 hour expiry
 		},
