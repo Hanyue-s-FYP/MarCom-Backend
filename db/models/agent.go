@@ -34,9 +34,9 @@ func (*agentModel) Create(a Agent) error {
 	}
 
 	agentQuery := `
-        INSERT INTO Agents (name, general_description, business_id)
-        VALUES (?, ?, ?)
-    `
+		INSERT INTO Agents (name, general_description, business_id)
+		VALUES (?, ?, ?)
+	`
 	res, err := tx.Exec(agentQuery, a.Name, a.GeneralDescription, a.BusinessID)
 	if err != nil {
 		tx.Rollback()
@@ -50,9 +50,9 @@ func (*agentModel) Create(a Agent) error {
 	}
 
 	attributeQuery := `
-        INSERT INTO AgentAttributes (key, value, agent_id)
-        VALUES (?, ?, ?)
-    `
+		INSERT INTO AgentAttributes (key, value, agent_id)
+		VALUES (?, ?, ?)
+	`
 	// for easy handling just add key value to the table so no need to concern about multiple agent use same row, easier handling when deleting and updating
 	for _, attr := range a.Attributes {
 		_, err := tx.Exec(attributeQuery, attr.Key, attr.Value, agentID)
@@ -69,10 +69,10 @@ var ErrAgentNotFound error = errors.New("agent not found")
 
 func (*agentModel) GetByID(id int) (*Agent, error) {
 	agentQuery := `
-        SELECT id, name, general_description, business_id
-        FROM Agents
-        WHERE id = ?
-    `
+		SELECT id, name, general_description, business_id
+		FROM Agents
+		WHERE id = ?
+	`
 	row := db.GetDB().QueryRow(agentQuery, id)
 
 	var agent Agent
@@ -95,9 +95,9 @@ func (*agentModel) GetByID(id int) (*Agent, error) {
 
 func (*agentModel) GetAll() ([]Agent, error) {
 	agentsQuery := `
-        SELECT id, name, general_description, business_id
-        FROM Agents
-    `
+		SELECT id, name, general_description, business_id
+		FROM Agents
+	`
 	rows, err := db.GetDB().Query(agentsQuery)
 	if err != nil {
 		return nil, err
@@ -127,10 +127,10 @@ func (*agentModel) GetAll() ([]Agent, error) {
 
 func (*agentModel) GetByBusinessID(id int) ([]Agent, error) {
 	agentQuery := `
-        SELECT id, name, general_description, business_id
-        FROM Agents
-        WHERE business_id = ?
-    `
+		SELECT id, name, general_description, business_id
+		FROM Agents
+		WHERE business_id = ?
+	`
 	rows, err := db.GetDB().Query(agentQuery, id)
 	if err != nil {
 		return nil, err
@@ -162,10 +162,10 @@ func (*agentModel) Update(a Agent) error {
 	}
 
 	agentQuery := `
-        UPDATE Agents
-        SET name = ?, general_description = ?, business_id = ?
-        WHERE id = ?
-    `
+		UPDATE Agents
+		SET name = ?, general_description = ?, business_id = ?
+		WHERE id = ?
+	`
 	_, err = tx.Exec(agentQuery, a.Name, a.GeneralDescription, a.BusinessID, a.ID)
 	if err != nil {
 		tx.Rollback()
@@ -211,9 +211,9 @@ func (*agentModel) Update(a Agent) error {
 
 	// Insert new attributes
 	insertQuery := `
-        INSERT INTO AgentAttributes (key, value, agent_id)
-        VALUES (?, ?, ?)
-    `
+		INSERT INTO AgentAttributes (key, value, agent_id)
+		VALUES (?, ?, ?)
+	`
 	for _, nattr := range newAttrs {
 		// only insert if id is zero value (should actually return error)
 		if nattr.ID == 0 {
@@ -235,9 +235,9 @@ func (*agentModel) Delete(id int) error {
 	}
 
 	deleteAttributesQuery := `
-        DELETE FROM AgentAttributes
-        WHERE agent_id = ?
-    `
+		DELETE FROM AgentAttributes
+		WHERE agent_id = ?
+	`
 	_, err = tx.Exec(deleteAttributesQuery, id)
 	if err != nil {
 		tx.Rollback()
@@ -245,9 +245,9 @@ func (*agentModel) Delete(id int) error {
 	}
 
 	deleteAgentQuery := `
-        DELETE FROM Agents
-        WHERE id = ?
-    `
+		DELETE FROM Agents
+		WHERE id = ?
+	`
 	_, err = tx.Exec(deleteAgentQuery, id)
 	if err != nil {
 		tx.Rollback()
@@ -259,10 +259,10 @@ func (*agentModel) Delete(id int) error {
 
 func getAgentAttribute(id int) ([]AgentAttribute, error) {
 	attributesQuery := `
-        SELECT id, key, value
-        FROM AgentAttributes
-        WHERE agent_id = ?
-    `
+		SELECT id, key, value
+		FROM AgentAttributes
+		WHERE agent_id = ?
+	`
 	attrRows, err := db.GetDB().Query(attributesQuery, id)
 	if err != nil {
 		return nil, err
