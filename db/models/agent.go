@@ -84,7 +84,7 @@ func (*agentModel) GetByID(id int) (*Agent, error) {
 		return nil, err
 	}
 
-	attrs, err := getAgentAttribute(agent.ID)
+	attrs, err := getAgentAttributes(agent.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -113,7 +113,7 @@ func (*agentModel) GetAll() ([]Agent, error) {
 		}
 
 		// get the attributes for the current agent
-		attrs, err := getAgentAttribute(agent.ID)
+		attrs, err := getAgentAttributes(agent.ID)
 		if err != nil {
 			return nil, err
 		}
@@ -144,7 +144,7 @@ func (*agentModel) GetByBusinessID(id int) ([]Agent, error) {
 		if err != nil {
 			return nil, err
 		}
-		attrs, err := getAgentAttribute(agent.ID)
+		attrs, err := getAgentAttributes(agent.ID)
 		if err != nil {
 			return nil, err
 		}
@@ -173,23 +173,10 @@ func (*agentModel) Update(a Agent) error {
 	}
 
 	// Get existing attributes
-	existingAttributesQuery := `SELECT id, key, value FROM AgentAttributes WHERE agent_id = ?`
-	rows, err := tx.Query(existingAttributesQuery, a.ID)
+	existingAttributes, err := getAgentAttributes(a.ID)
 	if err != nil {
 		tx.Rollback()
 		return err
-	}
-	defer rows.Close()
-
-	var existingAttributes []AgentAttribute
-	for rows.Next() {
-		var attr AgentAttribute
-		err := rows.Scan(&attr.ID, &attr.Key, &attr.Value)
-		if err != nil {
-			tx.Rollback()
-			return err
-		}
-		existingAttributes = append(existingAttributes, attr)
 	}
 
 	// find out attributes that are removed from the ori agent
@@ -257,7 +244,7 @@ func (*agentModel) Delete(id int) error {
 	return tx.Commit()
 }
 
-func getAgentAttribute(id int) ([]AgentAttribute, error) {
+func getAgentAttributes(id int) ([]AgentAttribute, error) {
 	attributesQuery := `
 		SELECT id, key, value
 		FROM AgentAttributes
