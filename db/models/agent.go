@@ -126,33 +126,33 @@ func (*agentModel) GetAll() ([]Agent, error) {
 }
 
 func (*agentModel) GetByBusinessID(id int) ([]Agent, error) {
-    agentQuery := `
+	agentQuery := `
         SELECT id, name, general_description, business_id
         FROM Agents
         WHERE business_id = ?
     `
-    rows, err := db.GetDB().Query(agentQuery, id)
-    if err != nil {
-        return nil, err
-    }
-    defer rows.Close()
+	rows, err := db.GetDB().Query(agentQuery, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
 
-    var agents []Agent
-    for rows.Next() {
-        var agent Agent
-        err := rows.Scan(&agent.ID, &agent.Name, &agent.GeneralDescription, &agent.BusinessID)
-        if err != nil {
-            return nil, err
-        }
-        attrs, err := getAgentAttribute(agent.ID)
-        if err != nil {
-            return nil, err
-        }
-        agent.Attributes = attrs
-        agents = append(agents, agent)
-    }
-    
-    return agents, nil
+	var agents []Agent
+	for rows.Next() {
+		var agent Agent
+		err := rows.Scan(&agent.ID, &agent.Name, &agent.GeneralDescription, &agent.BusinessID)
+		if err != nil {
+			return nil, err
+		}
+		attrs, err := getAgentAttribute(agent.ID)
+		if err != nil {
+			return nil, err
+		}
+		agent.Attributes = attrs
+		agents = append(agents, agent)
+	}
+
+	return agents, nil
 }
 
 func (*agentModel) Update(a Agent) error {
@@ -192,69 +192,69 @@ func (*agentModel) Update(a Agent) error {
 		existingAttributes = append(existingAttributes, attr)
 	}
 
-    // find out attributes that are removed from the ori agent
-    // only care about key and value, if user provide new key value pair, the id will be zero so comparing id is not accurate
-    compareFunc := func (a, b AgentAttribute) bool { return a.Key == b.Key && a.Value == b.Value } 
-    removedAttrs := utils.NotIn(existingAttributes, a.Attributes, compareFunc)
-    newAttrs := utils.NotIn(a.Attributes, existingAttributes, compareFunc)
-    deleteQuery := `DELETE FROM AgentAttributes WHERE agent_id = ? AND id = ?`
-    for _, rattr := range removedAttrs {
-        // only delete if already exist in db (ID will not be zero value `0`) (should actually return error cause this should not happen)
-        if rattr.ID != 0 {
-            _, err := tx.Exec(deleteQuery, a.ID, rattr.ID)
-            if err != nil {
-                tx.Rollback()
-                return err
-            }
-        }
-    }
+	// find out attributes that are removed from the ori agent
+	// only care about key and value, if user provide new key value pair, the id will be zero so comparing id is not accurate
+	compareFunc := func(a, b AgentAttribute) bool { return a.Key == b.Key && a.Value == b.Value }
+	removedAttrs := utils.NotIn(existingAttributes, a.Attributes, compareFunc)
+	newAttrs := utils.NotIn(a.Attributes, existingAttributes, compareFunc)
+	deleteQuery := `DELETE FROM AgentAttributes WHERE agent_id = ? AND id = ?`
+	for _, rattr := range removedAttrs {
+		// only delete if already exist in db (ID will not be zero value `0`) (should actually return error cause this should not happen)
+		if rattr.ID != 0 {
+			_, err := tx.Exec(deleteQuery, a.ID, rattr.ID)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
+	}
 
-    // Insert new attributes
-    insertQuery := `
+	// Insert new attributes
+	insertQuery := `
         INSERT INTO AgentAttributes (key, value, agent_id)
         VALUES (?, ?, ?)
     `
-    for _, nattr := range newAttrs {
-        // only insert if id is zero value (should actually return error)
-        if nattr.ID == 0 {
-            _, err := tx.Exec(insertQuery, nattr.Key, nattr.Value, a.ID)
-            if err != nil {
-                tx.Rollback()
-                return err
-            }
-        }
-    }
+	for _, nattr := range newAttrs {
+		// only insert if id is zero value (should actually return error)
+		if nattr.ID == 0 {
+			_, err := tx.Exec(insertQuery, nattr.Key, nattr.Value, a.ID)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
+	}
 
-    return tx.Commit()
+	return tx.Commit()
 }
 
 func (*agentModel) Delete(id int) error {
-    tx, err := db.GetDB().Begin()
-    if err != nil {
-        return err
-    }
+	tx, err := db.GetDB().Begin()
+	if err != nil {
+		return err
+	}
 
-    deleteAttributesQuery := `
+	deleteAttributesQuery := `
         DELETE FROM AgentAttributes
         WHERE agent_id = ?
     `
-    _, err = tx.Exec(deleteAttributesQuery, id)
-    if err != nil {
-        tx.Rollback()
-        return err
-    }
+	_, err = tx.Exec(deleteAttributesQuery, id)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
 
-    deleteAgentQuery := `
+	deleteAgentQuery := `
         DELETE FROM Agents
         WHERE id = ?
     `
-    _, err = tx.Exec(deleteAgentQuery, id)
-    if err != nil {
-        tx.Rollback()
-        return err
-    }
+	_, err = tx.Exec(deleteAgentQuery, id)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
 
-    return tx.Commit()
+	return tx.Commit()
 }
 
 func getAgentAttribute(id int) ([]AgentAttribute, error) {
@@ -263,7 +263,7 @@ func getAgentAttribute(id int) ([]AgentAttribute, error) {
         FROM AgentAttributes
         WHERE agent_id = ?
     `
-	attrRows, err := db.GetDB().Query(attributesQuery)
+	attrRows, err := db.GetDB().Query(attributesQuery, id)
 	if err != nil {
 		return nil, err
 	}
