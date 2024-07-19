@@ -84,7 +84,7 @@ func GetProduct(w http.ResponseWriter, r *http.Request) (*models.Product, error)
 	return product, nil
 }
 
-func GetAllProduct(w http.ResponseWriter, r *http.Request) (*modules.SliceWrapper[models.Product], error) {
+func GetAllProducts(w http.ResponseWriter, r *http.Request) (*modules.SliceWrapper[models.Product], error) {
 	products, err := models.ProductModel.GetAll()
 	if err != nil {
 		return nil, utils.HttpError{
@@ -97,7 +97,7 @@ func GetAllProduct(w http.ResponseWriter, r *http.Request) (*modules.SliceWrappe
 	return &modules.SliceWrapper[models.Product]{Data: products}, nil
 }
 
-func GetAllProductByBusiness(w http.ResponseWriter, r *http.Request) (*modules.SliceWrapper[models.Product], error) {
+func GetAllProductsByBusiness(w http.ResponseWriter, r *http.Request) (*modules.SliceWrapper[models.Product], error) {
 	// just in case still want investor module, see role, if role is business then can directly take user id if role is business then id should be in path
 	role, err := strconv.Atoi(r.Header.Get("role"))
 	if err != nil {
@@ -148,7 +148,7 @@ func GetAllProductByBusiness(w http.ResponseWriter, r *http.Request) (*modules.S
 
 	}
 
-	products, err := models.ProductModel.GetByBusinessID(businessID)
+	products, err := models.ProductModel.GetAllByBusinessID(businessID)
 	if err != nil {
 		return nil, utils.HttpError{
 			Code:       http.StatusInternalServerError,
@@ -158,7 +158,6 @@ func GetAllProductByBusiness(w http.ResponseWriter, r *http.Request) (*modules.S
 	}
 
 	return &modules.SliceWrapper[models.Product]{Data: products}, nil
-
 }
 
 func UpdateProduct(w http.ResponseWriter, r *http.Request) (*modules.ExecResponse, error) {
@@ -212,4 +211,3 @@ func DeleteProduct(w http.ResponseWriter, r *http.Request) (*modules.ExecRespons
 
 	return &modules.ExecResponse{Message: "Successfully deleted product"}, nil
 }
-

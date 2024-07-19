@@ -125,7 +125,7 @@ func (*agentModel) GetAll() ([]Agent, error) {
 	return agents, nil
 }
 
-func (*agentModel) GetByBusinessID(id int) ([]Agent, error) {
+func (*agentModel) GetAllByBusinessID(id int) ([]Agent, error) {
 	agentQuery := `
 		SELECT id, name, general_description, business_id
 		FROM Agents

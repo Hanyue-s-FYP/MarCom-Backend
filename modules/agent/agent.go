@@ -84,7 +84,7 @@ func GetAgent(w http.ResponseWriter, r *http.Request) (*models.Agent, error) {
 	return agent, nil
 }
 
-func GetAllAgent(w http.ResponseWriter, r *http.Request) (*modules.SliceWrapper[models.Agent], error) {
+func GetAllAgents(w http.ResponseWriter, r *http.Request) (*modules.SliceWrapper[models.Agent], error) {
 	agents, err := models.AgentModel.GetAll()
 	if err != nil {
 		return nil, utils.HttpError{
@@ -97,7 +97,7 @@ func GetAllAgent(w http.ResponseWriter, r *http.Request) (*modules.SliceWrapper[
 	return &modules.SliceWrapper[models.Agent]{Data: agents}, nil
 }
 
-func GetAllAgentByBusiness(w http.ResponseWriter, r *http.Request) (*modules.SliceWrapper[models.Agent], error) {
+func GetAllAgentsByBusiness(w http.ResponseWriter, r *http.Request) (*modules.SliceWrapper[models.Agent], error) {
 	// just in case still want investor module, see role, if role is business then can directly take user id if role is business then id should be in path
 	role, err := strconv.Atoi(r.Header.Get("role"))
 	if err != nil {
@@ -148,7 +148,7 @@ func GetAllAgentByBusiness(w http.ResponseWriter, r *http.Request) (*modules.Sli
 
 	}
 
-	agents, err := models.AgentModel.GetByBusinessID(businessID)
+	agents, err := models.AgentModel.GetAllByBusinessID(businessID)
 	if err != nil {
 		return nil, utils.HttpError{
 			Code:       http.StatusInternalServerError,
