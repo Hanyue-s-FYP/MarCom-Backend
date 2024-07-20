@@ -15,9 +15,9 @@ func main() {
 	SetupRouter(router)
 
 	middlewares := middleware.Use(
+        middleware.Auth,
+        middleware.RequestLogger,
 		middleware.Cors,
-		middleware.RequestLogger,
-		middleware.Auth,
 	)
 
 	server := http.Server{
