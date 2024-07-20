@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/Hanyue-s-FYP/Marcom-Backend/db/models"
@@ -121,7 +122,7 @@ func Login(w http.ResponseWriter, r *http.Request) (*LoginResponse, error) {
 	// generates jwt token with HS256 method
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, JWTClaims{
 		UserID: user.ID, // depending on role if business then is BusinessID
-		Role:   1, // default to business first now dont care about investor gok
+		Role:   models.BUSINESS,       // default to business first now dont care about investor gok
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)), // default to 24 hour expiry
 		},
@@ -136,6 +137,61 @@ func Login(w http.ResponseWriter, r *http.Request) (*LoginResponse, error) {
 	} else {
 		return &LoginResponse{Token: tokStr, Message: "Successfully logged in"}, nil
 	}
+}
+
+type UserWithRole struct {
+	models.User
+	Role models.UserRole
+}
+
+func GetMe(w http.ResponseWriter, r *http.Request) (*UserWithRole, error) {
+	// obtain role from header (passed through the auth middleware alrd)
+	role, err := strconv.Atoi(r.Header.Get("Role"))
+	if err != nil {
+		return nil, utils.HttpError{
+			Code:       http.StatusInternalServerError,
+			Message:    "Failed to obtain user account",
+			LogMessage: fmt.Sprintf("failed to obtain user role when get user: %v", err),
+		}
+	}
+
+	var id, userId int
+	if id, err = strconv.Atoi(r.Header.Get("UserId")); err != nil {
+		return nil, utils.HttpError{
+			Code:       http.StatusInternalServerError,
+			Message:    "Failed to obtain user account",
+			LogMessage: fmt.Sprintf("failed to obtain user id when get user: %v", err),
+		}
+	}
+	if role == models.INVESTOR {
+		// do fetch user through investor model
+	} else {
+		business, err := models.BusinessModel.GetByBusinessID(id)
+		if err != nil {
+			return nil, utils.HttpError{
+				Code:       http.StatusInternalServerError,
+				Message:    "Failed to obtain user account",
+				LogMessage: fmt.Sprintf("failed to obtain business when get user: %v", err),
+			}
+		}
+        userId = business.User.ID
+	}
+
+    user, err := models.UserModel.GetByID(userId)
+    if err != nil {
+        if errors.Is(err, models.ErrUserNotFound) {
+            return nil, utils.HttpError{
+                Code: http.StatusNotFound,
+                Message: "User does not exist",
+                LogMessage: "user not found",
+            }
+        }
+    }
+
+    return &UserWithRole{
+        User: *user,
+        Role: models.UserRole(role),
+    }, nil
 }
 
 func hashPassword(pw string) (string, error) {

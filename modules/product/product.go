@@ -99,7 +99,7 @@ func GetAllProducts(w http.ResponseWriter, r *http.Request) (*modules.SliceWrapp
 
 func GetAllProductsByBusiness(w http.ResponseWriter, r *http.Request) (*modules.SliceWrapper[models.Product], error) {
 	// just in case still want investor module, see role, if role is business then can directly take user id if role is business then id should be in path
-	role, err := strconv.Atoi(r.Header.Get("role"))
+	role, err := strconv.Atoi(r.Header.Get("Role"))
 	if err != nil {
 		return nil, utils.HttpError{
 			Code:       http.StatusInternalServerError,

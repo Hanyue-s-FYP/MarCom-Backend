@@ -10,7 +10,7 @@ import (
 type User struct {
 	ID          int
 	Username    string
-	Password    string
+	Password    string `json:"-"` // always ignore this field in JSON encoding responses
 	DisplayName string
 	Email       string
 	Status      int
@@ -92,7 +92,7 @@ func (*businessModel) Create(b Business) error {
 
 var ErrBusinessNotFound error = errors.New("business not found")
 
-func (*businessModel) GetByID(id int) (*Business, error) {
+func (*businessModel) GetByBusinessID(id int) (*Business, error) {
 	query := `
 			SELECT
 					u.id, u.username, u.password, u.display_name, u.email, u.status, u.phone_number,
@@ -102,7 +102,7 @@ func (*businessModel) GetByID(id int) (*Business, error) {
 			JOIN
 					Businesses b ON u.id = b.user_id
 			WHERE
-					u.id = ?
+					b.id = ?
     `
 	row := db.GetDB().QueryRow(query, id)
 	var business Business
@@ -120,6 +120,7 @@ func (*businessModel) GetByID(id int) (*Business, error) {
 
 	return &business, nil
 }
+
 func (*businessModel) GetByUsername(username string) (*Business, error) {
 	query := `
 			SELECT
@@ -147,4 +148,35 @@ func (*businessModel) GetByUsername(username string) (*Business, error) {
 	}
 
 	return &business, nil
+}
+
+type userModel struct{}
+
+var UserModel *userModel
+
+var ErrUserNotFound error = errors.New("user not found")
+
+func (*userModel) GetByID(id int) (*User, error) {
+	query := `
+			SELECT
+					u.id, u.username, u.password, u.display_name, u.email, u.status, u.phone_number
+			FROM
+					Users u
+			WHERE
+					u.id = ?
+    `
+	row := db.GetDB().QueryRow(query, id)
+	var user User
+	err := row.Scan(
+		&user.ID, &user.Username, &user.Password, &user.DisplayName,
+		&user.Email, &user.Status, &user.PhoneNumber,
+	)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrUserNotFound
+		}
+		return nil, err
+	}
+
+	return &user, nil
 }

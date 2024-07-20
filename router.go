@@ -28,6 +28,7 @@ func SetupRouter(r *http.ServeMux) {
 	// Auth routes
 	r.HandleFunc("POST /login", utils.MakeHttpHandler(user.Login))
 	r.HandleFunc("POST /register-business", utils.MakeHttpHandler(user.RegisterBusiness, 201))
+    r.HandleFunc("GET /get-me", utils.MakeHttpHandler(user.GetMe))
 
 	// Product routes
 	r.HandleFunc("GET /products", utils.MakeHttpHandler(product.GetAllProducts))

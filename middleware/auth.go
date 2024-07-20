@@ -16,7 +16,10 @@ import (
 // the routes that requires authentication
 var authRoutes []string = []string{
 	"/auth_test", // just to test auth middleware is working, will remove
-	"/product",   // everything related to product should be authenticated with business id (for now, revisit to allow for investors)
+    "/get-me", // require token when getting themself
+	"/products",   // everything related to product should be authenticated with business id (for now, revisit to allow for investors)
+    "/agents", // same for agent
+    "/environments", // same for environments
 }
 
 func Auth(next http.Handler) http.Handler {
@@ -45,9 +48,9 @@ func Auth(next http.Handler) http.Handler {
 						LogMessage: err.Error(),
 					})
 				} else if claims, ok := jwtToken.Claims.(*user.JWTClaims); ok {
-					slog.Info(fmt.Sprintf("User ID: %d, Expires: %s", claims.UserID, claims.ExpiresAt))
-					r.Header.Add("userId", strconv.Itoa(claims.UserID))
-                    r.Header.Add("role", strconv.Itoa(int(claims.Role)))
+                    slog.Info(fmt.Sprintf("User ID: %d, Role: %d, Expires: %s", claims.UserID, claims.Role, claims.ExpiresAt))
+					r.Header.Add("UserId", strconv.Itoa(claims.UserID))
+                    r.Header.Add("Role", strconv.Itoa(int(claims.Role)))
 					next.ServeHTTP(w, r)
 				} else {
 					utils.ResponseError(w, utils.HttpError{
