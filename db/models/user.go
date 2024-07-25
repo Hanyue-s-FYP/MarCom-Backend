@@ -150,6 +150,17 @@ func (*businessModel) GetByUsername(username string) (*Business, error) {
 	return &business, nil
 }
 
+func (*businessModel) Update(business Business) error {
+    updateQuery := `
+        UPDATE Businesses
+        SET description = ?, business_type = ?, cover_img_path = ?
+        WHERE id = ?
+    `
+
+    _, err := db.GetDB().Exec(updateQuery, business.Description, business.BusinessType, business.CoverImgPath, business.ID)
+    return err
+}
+
 type userModel struct{}
 
 var UserModel *userModel
@@ -180,3 +191,5 @@ func (*userModel) GetByID(id int) (*User, error) {
 
 	return &user, nil
 }
+
+

@@ -10,9 +10,10 @@ import (
 
 // faster access than os.Getenv
 type Config struct {
-	PORT    string
-	HOST    string
-	DB_PATH string
+	PORT       string
+	HOST       string
+	DB_PATH    string
+	IMG_FOLDER string
 }
 
 func loadConfig(filename string) error {
@@ -46,17 +47,19 @@ func NewConfig(filename string) *Config {
 	fmt.Printf("Loading Config from file `%s`\r\n", filename)
 	if err := loadConfig(filename); err != nil {
 		config = Config{
-			HOST:    os.Getenv("HOST"),
-			PORT:    os.Getenv("PORT"),
-			DB_PATH: os.Getenv("DB_PATH"),
+			HOST:       os.Getenv("HOST"),
+			PORT:       os.Getenv("PORT"),
+			DB_PATH:    os.Getenv("DB_PATH"),
+			IMG_FOLDER: os.Getenv("IMG_PATH"),
 		}
 
 	} else {
 		// failed to load config smh, just fallback to default (since rn no involve critical API keys)
 		config = Config{
-			HOST:    "localhost",
-			PORT:    "8080",
-			DB_PATH: "marcom.db",
+			HOST:       "localhost",
+			PORT:       "8080",
+			DB_PATH:    "marcom.db",
+			IMG_FOLDER: os.Getenv("img"),
 		}
 	}
 

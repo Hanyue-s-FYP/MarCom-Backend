@@ -3,6 +3,9 @@ package db
 import (
 	"database/sql"
 	"fmt"
+	"io"
+	"mime/multipart"
+	"os"
 
 	"github.com/Hanyue-s-FYP/Marcom-Backend/utils"
 	_ "github.com/mattn/go-sqlite3"
@@ -30,4 +33,20 @@ func GetDB() *sql.DB {
 		}
 	}
 	return db
+}
+
+// return the final path (would be the same as in physical path and served file)
+func UploadImage(file *multipart.File, header *multipart.FileHeader) (string, error) {
+    // get where to store files
+    path := fmt.Sprintf("/%s/", utils.GetConfig().IMG_FOLDER)
+
+    f, err := os.OpenFile(path+header.Filename, os.O_WRONLY|os.O_CREATE, 0777)
+    if err != nil {
+        return "", err
+    }
+
+    // copy the file to the physical path on disk
+    io.Copy(f, *file)
+
+    return path+header.Filename, nil
 }

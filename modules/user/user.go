@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"time"
@@ -121,8 +122,8 @@ func Login(w http.ResponseWriter, r *http.Request) (*LoginResponse, error) {
 
 	// generates jwt token with HS256 method
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, JWTClaims{
-		UserID: user.ID, // depending on role if business then is BusinessID
-		Role:   models.BUSINESS,       // default to business first now dont care about investor gok
+		UserID: user.ID,         // depending on role if business then is BusinessID
+		Role:   models.BUSINESS, // default to business first now dont care about investor gok
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)), // default to 24 hour expiry
 		},
@@ -174,24 +175,109 @@ func GetMe(w http.ResponseWriter, r *http.Request) (*UserWithRole, error) {
 				LogMessage: fmt.Sprintf("failed to obtain business when get user: %v", err),
 			}
 		}
-        userId = business.User.ID
+		userId = business.User.ID
 	}
 
-    user, err := models.UserModel.GetByID(userId)
-    if err != nil {
-        if errors.Is(err, models.ErrUserNotFound) {
-            return nil, utils.HttpError{
-                Code: http.StatusNotFound,
-                Message: "User does not exist",
-                LogMessage: "user not found",
-            }
-        }
+	user, err := models.UserModel.GetByID(userId)
+	if err != nil {
+		if errors.Is(err, models.ErrUserNotFound) {
+			return nil, utils.HttpError{
+				Code:       http.StatusNotFound,
+				Message:    "User does not exist",
+				LogMessage: "user not found",
+			}
+		}
+	}
+
+	return &UserWithRole{
+		User: *user,
+		Role: models.UserRole(role),
+	}, nil
+}
+
+func GetBusiness(w http.ResponseWriter, r *http.Request) (*models.Business, error) {
+	idStr := r.PathValue("id") // assumes {id} exists in the route
+	if len(idStr) == 0 {
+		return nil, utils.HttpError{
+			Code:       http.StatusBadRequest,
+			Message:    "Expected business id in path, got none",
+			LogMessage: "got empty path value when obtaining business",
+		}
+	}
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		return nil, utils.HttpError{
+			Code:       http.StatusBadRequest,
+			Message:    "Failed to parse business id to number",
+			LogMessage: fmt.Sprintf("failed to parse business id from path value: %v", err),
+		}
+	}
+
+	business, err := models.BusinessModel.GetByBusinessID(id)
+	if err != nil {
+		return nil, utils.HttpError{
+			Code:       http.StatusInternalServerError,
+			Message:    "Failed to obtain business",
+			LogMessage: fmt.Sprintf("failed to obtain business: %v", err),
+		}
+	}
+	return business, nil
+}
+
+/*
+DisplayName: string;
+  BusinessType: string;
+  Description: string;
+  CoverPic?: File | string;
+*/
+
+func UpdateBusiness(w http.ResponseWriter, r *http.Request) (*modules.ExecResponse, error) {
+	var business models.Business
+	r.ParseMultipartForm(1 << 30) // 1GB max size should be sufficient
+
+	idStr := r.FormValue("ID")
+	slog.Info(fmt.Sprintf("ID: %s", idStr))
+    // front end will handle new cover image will send back through another property for easy purpose (no need mess with complex typing)
+    // the CoverImgPath property should be left unchanged and remain original when sent back from front end
+	_, header, err := r.FormFile("NewCoverImg") 
+	if err != nil && !errors.Is(err, http.ErrMissingFile) {
+		return nil, utils.HttpError{
+			Code:       http.StatusInternalServerError,
+			Message:    "Unexpected error occured",
+			LogMessage: fmt.Sprintf("unexpected error when updating business: %v", err),
+		}
+	}
+
+    // only if got file, handle upload file
+    if !errors.Is(err, http.ErrMissingFile) {
+        slog.Info(fmt.Sprintf("Filename: %s", header.Filename))
     }
 
-    return &UserWithRole{
-        User: *user,
-        Role: models.UserRole(role),
-    }, nil
+	// only should be cannot get count
+	if _, err := models.BusinessModel.GetByBusinessID(business.ID); err != nil {
+		if errors.Is(err, models.ErrBusinessNotFound) {
+			return nil, utils.HttpError{
+				Code:       http.StatusNotFound,
+				Message:    "Business to update does not exist",
+				LogMessage: fmt.Sprintf("business with id %d not found", business.ID),
+			}
+		} else {
+			return nil, utils.HttpError{
+				Code:       http.StatusInternalServerError,
+				Message:    "Unexpected error occured",
+				LogMessage: fmt.Sprintf("unexpected error when updating business: %v", err),
+			}
+		}
+	}
+	if err := models.BusinessModel.Update(business); err != nil {
+		return nil, utils.HttpError{
+			Code:       http.StatusInternalServerError,
+			Message:    "Failed to update business",
+			LogMessage: fmt.Sprintf("failed to update business: %v", err),
+		}
+	}
+
+	return &modules.ExecResponse{Message: "Successfully updated business"}, nil
 }
 
 func hashPassword(pw string) (string, error) {

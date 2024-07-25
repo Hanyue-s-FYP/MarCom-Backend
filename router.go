@@ -30,6 +30,10 @@ func SetupRouter(r *http.ServeMux) {
 	r.HandleFunc("POST /register-business", utils.MakeHttpHandler(user.RegisterBusiness, 201))
     r.HandleFunc("GET /get-me", utils.MakeHttpHandler(user.GetMe))
 
+    // Business routes
+    r.HandleFunc("GET /business/{id}", utils.MakeHttpHandler(user.GetBusiness))
+    r.HandleFunc("PUT /business", utils.MakeHttpHandler(user.UpdateBusiness))
+
 	// Product routes
 	r.HandleFunc("GET /products", utils.MakeHttpHandler(product.GetAllProducts))
 	r.HandleFunc("GET /products/{id}", utils.MakeHttpHandler(product.GetProduct))
@@ -56,4 +60,7 @@ func SetupRouter(r *http.ServeMux) {
 	r.HandleFunc("POST /environments", utils.MakeHttpHandler(environment.CreateEnvironment))
 	r.HandleFunc("PUT /environments", utils.MakeHttpHandler(environment.UpdateEnvironment))
 	r.HandleFunc("DELETE /environments/{id}", utils.MakeHttpHandler(environment.DeleteEnvironment))
+
+    // handle images (load the path from config)
+    r.Handle(fmt.Sprintf("/%s/", utils.GetConfig().IMG_FOLDER), http.FileServer(http.Dir(utils.GetConfig().IMG_FOLDER)))
 }
