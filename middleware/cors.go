@@ -6,7 +6,8 @@ import "net/http"
 func Cors(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*") // for now, for simplicity allow from all origin first
-		w.Header().Add("Access-Control-Allow-Headers", "content-type")
+		w.Header().Add("Access-Control-Allow-Headers", "*")
+        w.Header().Add("Access-Control-Allow-Methods", "*")
 		next.ServeHTTP(w, r)
 	})
 }
