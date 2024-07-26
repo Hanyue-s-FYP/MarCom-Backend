@@ -151,13 +151,14 @@ func (*businessModel) GetByUsername(username string) (*Business, error) {
 }
 
 func (*businessModel) Update(business Business) error {
+    // only description and cover image can be updated
     updateQuery := `
         UPDATE Businesses
-        SET description = ?, business_type = ?, cover_img_path = ?
+        SET description = ?, cover_img_path = ?
         WHERE id = ?
     `
 
-    _, err := db.GetDB().Exec(updateQuery, business.Description, business.BusinessType, business.CoverImgPath, business.ID)
+    _, err := db.GetDB().Exec(updateQuery, business.Description, business.CoverImgPath, business.ID)
     return err
 }
 

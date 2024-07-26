@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/Hanyue-s-FYP/Marcom-Backend/db"
 	"github.com/Hanyue-s-FYP/Marcom-Backend/db/models"
 	"github.com/Hanyue-s-FYP/Marcom-Backend/modules"
 	"github.com/Hanyue-s-FYP/Marcom-Backend/utils"
@@ -142,7 +143,8 @@ func Login(w http.ResponseWriter, r *http.Request) (*LoginResponse, error) {
 
 type UserWithRole struct {
 	models.User
-	Role models.UserRole
+	Role   models.UserRole
+	RoleID int //denotes the id for that specific role, if role is business then is business id vice versa
 }
 
 func GetMe(w http.ResponseWriter, r *http.Request) (*UserWithRole, error) {
@@ -190,8 +192,9 @@ func GetMe(w http.ResponseWriter, r *http.Request) (*UserWithRole, error) {
 	}
 
 	return &UserWithRole{
-		User: *user,
-		Role: models.UserRole(role),
+		User:   *user,
+		Role:   models.UserRole(role),
+		RoleID: id,
 	}, nil
 }
 
@@ -215,6 +218,13 @@ func GetBusiness(w http.ResponseWriter, r *http.Request) (*models.Business, erro
 
 	business, err := models.BusinessModel.GetByBusinessID(id)
 	if err != nil {
+		if errors.Is(err, models.ErrBusinessNotFound) {
+			return nil, utils.HttpError{
+				Code:       http.StatusNotFound,
+				Message:    "Failed to obtain business, business does not exist",
+				LogMessage: fmt.Sprintf("failed to obtain business: %v", err),
+			}
+		}
 		return nil, utils.HttpError{
 			Code:       http.StatusInternalServerError,
 			Message:    "Failed to obtain business",
@@ -236,10 +246,24 @@ func UpdateBusiness(w http.ResponseWriter, r *http.Request) (*modules.ExecRespon
 	r.ParseMultipartForm(1 << 30) // 1GB max size should be sufficient
 
 	idStr := r.FormValue("ID")
-	slog.Info(fmt.Sprintf("ID: %s", idStr))
-    // front end will handle new cover image will send back through another property for easy purpose (no need mess with complex typing)
-    // the CoverImgPath property should be left unchanged and remain original when sent back from front end
-	_, header, err := r.FormFile("NewCoverImg") 
+	slog.Info(fmt.Sprintf("Updating business with ID: %s", idStr))
+    if id, err := strconv.Atoi(idStr); err != nil {
+        return nil, utils.HttpError{
+            Code: http.StatusInternalServerError,
+            Message: "Failed to parse business ID",
+            LogMessage: fmt.Sprintf("failed to parse business ID when updating business: %v", err),
+        }
+    } else {
+        business.ID = id
+    }
+
+    // get all the other form values that can be updated
+    business.Description = r.FormValue("Description")
+    business.CoverImgPath = r.FormValue("CoverImgPath")
+    
+	// front end will handle new cover image will send back through another property for easy purpose (no need mess with complex typing)
+	// the CoverImgPath property should be left unchanged and remain original when sent back from front end
+	file, header, err := r.FormFile("NewCoverImg")
 	if err != nil && !errors.Is(err, http.ErrMissingFile) {
 		return nil, utils.HttpError{
 			Code:       http.StatusInternalServerError,
@@ -248,10 +272,20 @@ func UpdateBusiness(w http.ResponseWriter, r *http.Request) (*modules.ExecRespon
 		}
 	}
 
-    // only if got file, handle upload file
-    if !errors.Is(err, http.ErrMissingFile) {
-        slog.Info(fmt.Sprintf("Filename: %s", header.Filename))
-    }
+	// only if got file, handle upload file
+	if !errors.Is(err, http.ErrMissingFile) {
+		slog.Info(fmt.Sprintf("Obtained file, Filename: %s", header.Filename))
+        uploadPath, err := db.UploadImage(&file, header)
+        if err != nil {
+            return nil, utils.HttpError{
+                Code: http.StatusInternalServerError,
+                Message: "Failed to upload image",
+                LogMessage: fmt.Sprintf("failed to upload file to database: %v", err),
+            }
+        }
+        slog.Info(fmt.Sprintf("File uploaded to: %s", uploadPath))
+        business.CoverImgPath = uploadPath
+	}
 
 	// only should be cannot get count
 	if _, err := models.BusinessModel.GetByBusinessID(business.ID); err != nil {

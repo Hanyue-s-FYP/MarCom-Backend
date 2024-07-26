@@ -62,5 +62,6 @@ func SetupRouter(r *http.ServeMux) {
 	r.HandleFunc("DELETE /environments/{id}", utils.MakeHttpHandler(environment.DeleteEnvironment))
 
     // handle images (load the path from config)
-    r.Handle(fmt.Sprintf("/%s/", utils.GetConfig().IMG_FOLDER), http.FileServer(http.Dir(utils.GetConfig().IMG_FOLDER)))
+    imgPrefix := fmt.Sprintf("/%s/", utils.GetConfig().IMG_FOLDER)
+    r.Handle(imgPrefix, http.StripPrefix(imgPrefix, http.FileServer(http.Dir(utils.GetConfig().IMG_FOLDER))))
 }
