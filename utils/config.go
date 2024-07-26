@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -25,7 +26,7 @@ func loadConfig(filename string) error {
 
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
-		confKV := strings.SplitN(scanner.Text(), ",", 2)
+        confKV := strings.SplitN(scanner.Text(), "=", 2)
 		if len(confKV) != 2 {
 			continue
 		}
@@ -42,26 +43,36 @@ func loadConfig(filename string) error {
 
 // store as global so when getting config for the second time no need to create a new one
 var config Config
+func (config *Config) String() string {
+    return fmt.Sprintf("HOST: %s, PORT: %s, DB_PATH: %s, IMG_PATH: %s", config.HOST, config.PORT, config.DB_PATH, config.IMG_FOLDER)
+}
 
 func NewConfig(filename string) *Config {
 	fmt.Printf("Loading Config from file `%s`\r\n", filename)
-	if err := loadConfig(filename); err != nil {
+	if err := loadConfig(filename); err == nil {
 		config = Config{
 			HOST:       os.Getenv("HOST"),
 			PORT:       os.Getenv("PORT"),
 			DB_PATH:    os.Getenv("DB_PATH"),
-			IMG_FOLDER: os.Getenv("IMG_PATH"),
+			IMG_FOLDER: os.Getenv("IMG_FOLDER"),
 		}
-
 	} else {
+        slog.Error(fmt.Sprintf("failed to load config, using default values: %v", err))
 		// failed to load config smh, just fallback to default (since rn no involve critical API keys)
 		config = Config{
 			HOST:       "localhost",
 			PORT:       "8080",
 			DB_PATH:    "marcom.db",
-			IMG_FOLDER: os.Getenv("img"),
+			IMG_FOLDER: "img",
 		}
 	}
+    slog.Info(fmt.Sprintf("Config loaded: %s", config.String()))
+
+    // create img dir if not exists
+    imgPath := filepath.Join(".", config.IMG_FOLDER)
+    if err := os.MkdirAll(imgPath, os.ModePerm); err != nil {
+        slog.Error(fmt.Sprintf("failed to check and create IMG_FOLDER: %v", err))
+    }
 
 	return &config
 }
@@ -69,7 +80,7 @@ func NewConfig(filename string) *Config {
 func GetConfig() *Config {
 	if config == (Config{}) {
 		// programmer error, should call NewConfig to initialize first
-		slog.Error("config is not initialized")
+        slog.Error(fmt.Sprintf("config is not initialized: %s", config.String()))
 		panic("config is not initialized")
 	}
 	return &config
