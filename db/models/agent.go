@@ -11,7 +11,7 @@ import (
 type Agent struct {
 	ID                 int
 	Name               string
-	GeneralDescription sql.NullString
+	GeneralDescription string // for easier purpose, string is easier to handle than null string, if null will just become empty string
 	BusinessID         int
 	Attributes         []AgentAttribute
 }

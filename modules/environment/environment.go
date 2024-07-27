@@ -12,6 +12,11 @@ import (
 	"github.com/Hanyue-s-FYP/Marcom-Backend/utils"
 )
 
+type SimplifiedEnvironment struct {
+	Name           string
+	SimulatedCount int
+}
+
 func CreateEnvironment(w http.ResponseWriter, r *http.Request) (*modules.ExecResponse, error) {
 	var env models.Environment
 	if err := json.NewDecoder(r.Body).Decode(&env); err != nil {
@@ -148,7 +153,82 @@ func GetAllEnvironmentsByBusiness(w http.ResponseWriter, r *http.Request) (*modu
 	}
 
 	return &modules.SliceWrapper[models.Environment]{Data: environments}, nil
+}
 
+func GetSimplifiedEnvironmentsWithProduct(w http.ResponseWriter, r *http.Request) (*modules.SliceWrapper[SimplifiedEnvironment], error) {
+	// should have product id in path
+	id := r.PathValue("id")
+	if id == "" {
+		return nil, utils.HttpError{
+			Code:       http.StatusNotFound,
+			Message:    "Expected ID in path, found empty string",
+			LogMessage: "unexpected empty string in request when matching wildcard {id}",
+		}
+	}
+
+	idInt, err := strconv.Atoi(id)
+	if err != nil {
+		return nil, utils.HttpError{
+			Code:       http.StatusInternalServerError,
+			Message:    "Failed to parse product ID from request",
+			LogMessage: fmt.Sprintf("failed to parse product ID from request: %v", err),
+		}
+	}
+
+	envs, err := models.EnvironmentModel.GetEnvironmentWithProduct(idInt)
+	if err != nil {
+		return nil, utils.HttpError{
+			Code:       http.StatusInternalServerError,
+			Message:    "Failed to obtain environments with product",
+			LogMessage: fmt.Sprintf("failed to obtain environments with product id: %v", err),
+		}
+	}
+
+	var simplifiedEnv []SimplifiedEnvironment
+	for _, v := range envs {
+		// TODO populate simulated count
+		simplifiedEnv = append(simplifiedEnv, SimplifiedEnvironment{Name: v.Name, SimulatedCount: 0})
+	}
+
+	return &modules.SliceWrapper[SimplifiedEnvironment]{Data: simplifiedEnv}, nil
+}
+
+func GetSimplifiedEnvironmentsWithAgent(w http.ResponseWriter, r *http.Request) (*modules.SliceWrapper[SimplifiedEnvironment], error) {
+	// should have agent id in path
+	id := r.PathValue("id")
+	if id == "" {
+		return nil, utils.HttpError{
+			Code:       http.StatusNotFound,
+			Message:    "Expected ID in path, found empty string",
+			LogMessage: "unexpected empty string in request when matching wildcard {id}",
+		}
+	}
+
+	idInt, err := strconv.Atoi(id)
+	if err != nil {
+		return nil, utils.HttpError{
+			Code:       http.StatusInternalServerError,
+			Message:    "Failed to parse agent ID from request",
+			LogMessage: fmt.Sprintf("failed to parse agent ID from request: %v", err),
+		}
+	}
+
+	envs, err := models.EnvironmentModel.GetEnvironmentWithAgent(idInt)
+	if err != nil {
+		return nil, utils.HttpError{
+			Code:       http.StatusInternalServerError,
+			Message:    "Failed to obtain environments with agent",
+			LogMessage: fmt.Sprintf("failed to obtain environments with agent id: %v", err),
+		}
+	}
+
+	var simplifiedEnv []SimplifiedEnvironment
+	for _, v := range envs {
+		// TODO populate simulated count
+		simplifiedEnv = append(simplifiedEnv, SimplifiedEnvironment{Name: v.Name, SimulatedCount: 0})
+	}
+
+	return &modules.SliceWrapper[SimplifiedEnvironment]{Data: simplifiedEnv}, nil
 }
 
 func UpdateEnvironment(w http.ResponseWriter, r *http.Request) (*modules.ExecResponse, error) {

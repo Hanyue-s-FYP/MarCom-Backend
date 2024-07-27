@@ -37,7 +37,6 @@ func SetupRouter(r *http.ServeMux) {
 	// Product routes
 	r.HandleFunc("GET /products", utils.MakeHttpHandler(product.GetAllProducts))
 	r.HandleFunc("GET /products/{id}", utils.MakeHttpHandler(product.GetProduct))
-	r.HandleFunc("GET /business-products", utils.MakeHttpHandler(product.GetAllProductsByBusiness)) // need this otherwise business won't be able to retrieve as their id is in the header already
 	r.HandleFunc("GET /business-products/{id}", utils.MakeHttpHandler(product.GetAllProductsByBusiness))
 	r.HandleFunc("POST /products", utils.MakeHttpHandler(product.CreateProduct))
 	r.HandleFunc("PUT /products", utils.MakeHttpHandler(product.UpdateProduct))
@@ -46,7 +45,6 @@ func SetupRouter(r *http.ServeMux) {
 	// Agent routes
 	r.HandleFunc("GET /agents", utils.MakeHttpHandler(agent.GetAllAgents))
 	r.HandleFunc("GET /agents/{id}", utils.MakeHttpHandler(agent.GetAgent))
-	r.HandleFunc("GET /business-agents", utils.MakeHttpHandler(agent.GetAllAgentsByBusiness))
 	r.HandleFunc("GET /business-agents/{id}", utils.MakeHttpHandler(agent.GetAllAgentsByBusiness))
 	r.HandleFunc("POST /agents", utils.MakeHttpHandler(agent.CreateAgent))
 	r.HandleFunc("PUT /agents", utils.MakeHttpHandler(agent.UpdateAgent))
@@ -55,7 +53,8 @@ func SetupRouter(r *http.ServeMux) {
 	// Environment routes
 	r.HandleFunc("GET /environments", utils.MakeHttpHandler(environment.GetAllEnvironments))
 	r.HandleFunc("GET /environments/{id}", utils.MakeHttpHandler(environment.GetEnvironment))
-	r.HandleFunc("GET /business-environments", utils.MakeHttpHandler(environment.GetAllEnvironmentsByBusiness))
+	r.HandleFunc("GET /environments/has-product/{id}", utils.MakeHttpHandler(environment.GetSimplifiedEnvironmentsWithProduct))
+	r.HandleFunc("GET /environments/has-agent/{id}", utils.MakeHttpHandler(environment.GetSimplifiedEnvironmentsWithAgent))
 	r.HandleFunc("GET /business-environments/{id}", utils.MakeHttpHandler(environment.GetAllEnvironmentsByBusiness))
 	r.HandleFunc("POST /environments", utils.MakeHttpHandler(environment.CreateEnvironment))
 	r.HandleFunc("PUT /environments", utils.MakeHttpHandler(environment.UpdateEnvironment))

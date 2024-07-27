@@ -98,46 +98,25 @@ func GetAllAgents(w http.ResponseWriter, r *http.Request) (*modules.SliceWrapper
 }
 
 func GetAllAgentsByBusiness(w http.ResponseWriter, r *http.Request) (*modules.SliceWrapper[models.Agent], error) {
-	// just in case still want investor module, see role, if role is business then can directly take user id if role is business then id should be in path
-	role, err := strconv.Atoi(r.Header.Get("Role"))
-	if err != nil {
-		return nil, utils.HttpError{
-			Code:       http.StatusInternalServerError,
-			Message:    "Failed to obtain agent",
-			LogMessage: fmt.Sprintf("failed to obtain user role when get agent by business: %v", err),
-		}
-	}
+    // id of the business accessible via route variable {id}
+    id := r.PathValue("id")
+    if id == "" {
+        return nil, utils.HttpError{
+            Code:       http.StatusNotFound,
+            Message:    "Expected ID in path, found empty string",
+            LogMessage: "unexpected empty string in request when matching wildcard {id}",
+        }
+    }
 
-	var businessID int
-	if role == models.INVESTOR {
-		// id of the agent accessible via route variable {id}
-		id := r.PathValue("id")
-		if id == "" {
-			return nil, utils.HttpError{
-				Code:       http.StatusNotFound,
-				Message:    "Expected ID in path, found empty string",
-				LogMessage: "unexpected empty string in request when matching wildcard {id}",
-			}
-		}
+    businessID, err := strconv.Atoi(id)
+    if err != nil {
+        return nil, utils.HttpError{
+            Code:       http.StatusInternalServerError,
+            Message:    "Failed to parse business ID from request",
+            LogMessage: fmt.Sprintf("failed to parse business ID from request: %v", err),
+        }
+    }
 
-		businessID, err = strconv.Atoi(id)
-		if err != nil {
-			return nil, utils.HttpError{
-				Code:       http.StatusInternalServerError,
-				Message:    "Failed to parse business ID from request",
-				LogMessage: fmt.Sprintf("failed to parse business ID from request: %v", err),
-			}
-		}
-
-	} else {
-		if businessID, err = strconv.Atoi(r.Header.Get("UserID")); err != nil {
-			return nil, utils.HttpError{
-				Code:       http.StatusInternalServerError,
-				Message:    "Failed to obtain agent",
-				LogMessage: fmt.Sprintf("failed to obtain user id when get agent by business id: %v", err),
-			}
-		}
-	}
 	// if still at 0 means it is not populated (suiran not very likely this will happen)
 	if businessID == 0 {
 		return nil, utils.HttpError{
@@ -158,7 +137,6 @@ func GetAllAgentsByBusiness(w http.ResponseWriter, r *http.Request) (*modules.Sl
 	}
 
 	return &modules.SliceWrapper[models.Agent]{Data: agents}, nil
-
 }
 
 func UpdateAgent(w http.ResponseWriter, r *http.Request) (*modules.ExecResponse, error) {

@@ -291,6 +291,52 @@ func (*environmentModel) Delete(id int) error {
 	return tx.Commit()
 }
 
+func (*environmentModel) GetEnvironmentWithProduct(productId int) ([]Environment, error) {
+	envIds := `SELECT environment_id FROM EnvironmentProducts WHERE product_id = ?`
+	envIdRows, err := db.GetDB().Query(envIds, productId)
+	if err != nil {
+		return nil, err
+	}
+	defer envIdRows.Close()
+
+	var envs []Environment
+	for envIdRows.Next() {
+		var envId int
+		if err := envIdRows.Scan(&envId); err != nil {
+			return nil, err
+		}
+		env, err := EnvironmentModel.GetByID(envId)
+		if err != nil {
+			return nil, err
+		}
+		envs = append(envs, *env)
+	}
+	return envs, nil
+}
+
+func (*environmentModel) GetEnvironmentWithAgent(agentId int) ([]Environment, error) {
+	envIds := `SELECT environment_id FROM EnvironmentAgents WHERE agent_id = ?`
+	envIdRows, err := db.GetDB().Query(envIds, agentId)
+	if err != nil {
+		return nil, err
+	}
+	defer envIdRows.Close()
+
+	var envs []Environment
+	for envIdRows.Next() {
+		var envId int
+		if err := envIdRows.Scan(&envId); err != nil {
+			return nil, err
+		}
+		env, err := EnvironmentModel.GetByID(envId)
+		if err != nil {
+			return nil, err
+		}
+		envs = append(envs, *env)
+	}
+	return envs, nil
+}
+
 func getAgentsByEnvironmentId(id int) ([]Agent, error) {
 	agentIdQuery := `SELECT agent_id FROM EnvironmentAgents WHERE environment_id = ?`
 	agentIdRows, err := db.GetDB().Query(agentIdQuery, id)
