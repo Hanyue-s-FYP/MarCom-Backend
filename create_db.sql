@@ -1,4 +1,4 @@
-CREATE TABLE Users (
+CREATE TABLE IF NOT EXISTS Users (
     id INTEGER PRIMARY KEY,
     username TEXT NOT NULL,
     password TEXT NOT NULL,
@@ -8,21 +8,21 @@ CREATE TABLE Users (
     phone_number TEXT NOT NULL
 );
 
-CREATE TABLE Investors (
+CREATE TABLE IF NOT EXISTS Investors (
     id INTEGER PRIMARY KEY,
     user_id INTEGER NOT NULL,
     FOREIGN KEY (user_id) REFERENCES Users(id)
 );
 
 -- will be using jwt, no need to store suth tokens on the server anymore
--- CREATE TABLE AuthTokens (
+-- CREATE TABLE IF NOT EXISTS AuthTokens (
 --     token TEXT PRIMARY KEY,
 --     expires DATE NOT NULL,
 --     user_id INTEGER NOT NULL,
 --     FOREIGN KEY (user_id) REFERENCES Users(id)
 -- );
 
-CREATE TABLE Businesses (
+CREATE TABLE IF NOT EXISTS Businesses (
     id INTEGER PRIMARY KEY,
     description TEXT NOT NULL,
     business_type TEXT NOT NULL,
@@ -31,7 +31,7 @@ CREATE TABLE Businesses (
     FOREIGN KEY (user_id) REFERENCES Users(id)
 );
 
-CREATE TABLE Products (
+CREATE TABLE IF NOT EXISTS Products (
     id INTEGER PRIMARY KEY,
     name TEXT NOT NULL,
     description TEXT NOT NULL,
@@ -41,7 +41,7 @@ CREATE TABLE Products (
     FOREIGN KEY (business_id) REFERENCES Businesses(id)
 );
 
-CREATE TABLE Agents (
+CREATE TABLE IF NOT EXISTS Agents (
     id INTEGER PRIMARY KEY,
     name TEXT NOT NULL,
     general_description TEXT,
@@ -49,7 +49,7 @@ CREATE TABLE Agents (
     FOREIGN KEY (business_id) REFERENCES Businesses(id)
 );
 
-CREATE TABLE AgentAttributes (
+CREATE TABLE IF NOT EXISTS AgentAttributes (
     id INTEGER PRIMARY KEY,
     key TEXT NOT NULL,
     value TEXT NOT NULL,
@@ -57,7 +57,7 @@ CREATE TABLE AgentAttributes (
     FOREIGN KEY (agent_id) REFERENCES Agents(id)
 );
 
-CREATE TABLE Environments (
+CREATE TABLE IF NOT EXISTS Environments (
     id INTEGER PRIMARY KEY,
     name TEXT NOT NULL,
     description TEXT NOT NULL,
@@ -65,7 +65,7 @@ CREATE TABLE Environments (
     FOREIGN KEY (business_id) REFERENCES Businesses(id)
 );
 
-CREATE TABLE EnvironmentAgents (
+CREATE TABLE IF NOT EXISTS EnvironmentAgents (
     environment_id INTEGER NOT NULL,
     agent_id INTEGER NOT NULL,
     PRIMARY KEY (environment_id, agent_id),
@@ -73,7 +73,7 @@ CREATE TABLE EnvironmentAgents (
     FOREIGN KEY (agent_id) REFERENCES Agents(id)
 );
 
-CREATE TABLE SimulationEvents (
+CREATE TABLE IF NOT EXISTS SimulationEvents (
     id INTEGER PRIMARY KEY,
     prompt TEXT NOT NULL,
     event_type INTEGER NOT NULL,
@@ -84,14 +84,14 @@ CREATE TABLE SimulationEvents (
     FOREIGN KEY (cycle_id) REFERENCES SimulationCycles(id)
 );
 
-CREATE TABLE SimulationCycles (
+CREATE TABLE IF NOT EXISTS SimulationCycles (
     id INTEGER PRIMARY KEY,
     profit REAL NOT NULL,
     simulation_id INTEGER NOT NULL,
     FOREIGN KEY (simulation_id) REFERENCES Simulations(id)
 );
 
-CREATE TABLE Simulations (
+CREATE TABLE IF NOT EXISTS Simulations (
     id INTEGER PRIMARY KEY,
     name TEXT NOT NULL,
     maxCycleCount INTEGER NOT NULL,
@@ -103,7 +103,7 @@ CREATE TABLE Simulations (
     FOREIGN KEY (business_id) REFERENCES Businesses(id)
 );
 
-CREATE TABLE EnvironmentProducts (
+CREATE TABLE IF NOT EXISTS EnvironmentProducts (
     environment_id INTEGER NOT NULL,
     product_id INTEGER NOT NULL,
     PRIMARY KEY (environment_id, product_id),
