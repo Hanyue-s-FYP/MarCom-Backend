@@ -80,6 +80,7 @@ CREATE TABLE IF NOT EXISTS SimulationEvents (
     event_description TEXT NOT NULL,
     agent_id INTEGER NULL,
     cycle_id INTEGER NOT NULL,
+    time DATETIME NOT NULL, -- to preserve the order, more consistent when sorting
     FOREIGN KEY (agent_id) REFERENCES Agents(id),
     FOREIGN KEY (cycle_id) REFERENCES SimulationCycles(id)
 );
@@ -88,6 +89,7 @@ CREATE TABLE IF NOT EXISTS SimulationCycles (
     id INTEGER PRIMARY KEY,
     profit REAL NOT NULL,
     simulation_id INTEGER NOT NULL,
+    time DATETIME NOT NULL, -- to preserve the order, more consistent when sorting
     FOREIGN KEY (simulation_id) REFERENCES Simulations(id)
 );
 
