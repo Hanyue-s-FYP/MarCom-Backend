@@ -1,17 +1,18 @@
 package models
 
+// cycle can start from 0 (which is the initialisation cycle to init the simulation)
 type SimulationCycle struct {
-	ID           int
-	Profit       float64
-	AgentActions []CycleAgentAction
+	ID               int
+	Profit           float64
+	SimulationEvents []SimulationEvent
 }
 
-type CycleAgentAction struct {
-	Agent
-	ID                int
-	Prompt            string
-	ActionType        int
-	ActionDescription string
+type SimulationEvent struct {
+	Agent            *Agent // nullable
+	ID               int
+	Prompt           string
+	EventType        int
+	EventDescription string
 }
 
 type Simulation struct {

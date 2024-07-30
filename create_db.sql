@@ -73,12 +73,12 @@ CREATE TABLE EnvironmentAgents (
     FOREIGN KEY (agent_id) REFERENCES Agents(id)
 );
 
-CREATE TABLE CycleAgentActions (
+CREATE TABLE SimulationEvents (
     id INTEGER PRIMARY KEY,
     prompt TEXT NOT NULL,
-    action_type INTEGER NOT NULL,
-    action_description TEXT NOT NULL,
-    agent_id INTEGER NOT NULL,
+    event_type INTEGER NOT NULL,
+    event_description TEXT NOT NULL,
+    agent_id INTEGER NULL,
     cycle_id INTEGER NOT NULL,
     FOREIGN KEY (agent_id) REFERENCES Agents(id),
     FOREIGN KEY (cycle_id) REFERENCES SimulationCycles(id)
