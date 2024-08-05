@@ -22,6 +22,7 @@ var authRoutes []string = []string{
 	"/products",     // everything related to product should be authenticated with business id (for now, revisit to allow for investors)
 	"/agents",       // same for agent
 	"/environments", // same for environments
+    "/simulations",   // same for simulations
 }
 
 func Auth(next http.Handler) http.Handler {

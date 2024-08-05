@@ -7,6 +7,7 @@ import (
 	"github.com/Hanyue-s-FYP/Marcom-Backend/modules/agent"
 	"github.com/Hanyue-s-FYP/Marcom-Backend/modules/environment"
 	"github.com/Hanyue-s-FYP/Marcom-Backend/modules/product"
+	"github.com/Hanyue-s-FYP/Marcom-Backend/modules/simulation"
 	"github.com/Hanyue-s-FYP/Marcom-Backend/modules/user"
 	"github.com/Hanyue-s-FYP/Marcom-Backend/utils"
 )
@@ -59,6 +60,15 @@ func SetupRouter(r *http.ServeMux) {
 	r.HandleFunc("POST /environments", utils.MakeHttpHandler(environment.CreateEnvironment))
 	r.HandleFunc("PUT /environments", utils.MakeHttpHandler(environment.UpdateEnvironment))
 	r.HandleFunc("DELETE /environments/{id}", utils.MakeHttpHandler(environment.DeleteEnvironment))
+
+    // Simulation routes
+	r.HandleFunc("GET /simulations", utils.MakeHttpHandler(simulation.GetAllSimulations))
+	r.HandleFunc("GET /simulations/{id}", utils.MakeHttpHandler(simulation.GetSimulation))
+	r.HandleFunc("GET /business-simulations/{id}", utils.MakeHttpHandler(simulation.GetSimulationsByBusinessID))
+	r.HandleFunc("POST /simulations", utils.MakeHttpHandler(simulation.CreateSimulation))
+	r.HandleFunc("PUT /simulations", utils.MakeHttpHandler(simulation.UpdateSimulation))
+    // TODO
+	r.HandleFunc("DELETE /simulations/{id}", utils.MakeHttpHandler(simulation.UpdateSimulation))
 
     // handle images (load the path from config)
     imgPrefix := fmt.Sprintf("/%s/", utils.GetConfig().IMG_FOLDER)

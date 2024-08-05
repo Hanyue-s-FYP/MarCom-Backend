@@ -87,7 +87,6 @@ CREATE TABLE IF NOT EXISTS SimulationEvents (
 
 CREATE TABLE IF NOT EXISTS SimulationCycles (
     id INTEGER PRIMARY KEY,
-    profit REAL NOT NULL,
     simulation_id INTEGER NOT NULL,
     time DATETIME NOT NULL, -- to preserve the order, more consistent when sorting
     FOREIGN KEY (simulation_id) REFERENCES Simulations(id)
@@ -96,7 +95,7 @@ CREATE TABLE IF NOT EXISTS SimulationCycles (
 CREATE TABLE IF NOT EXISTS Simulations (
     id INTEGER PRIMARY KEY,
     name TEXT NOT NULL,
-    maxCycleCount INTEGER NOT NULL,
+    max_cycle_count INTEGER NOT NULL,
     is_price_opt_enabled BOOLEAN NOT NULL,
     status INTEGER NOT NULL,
     environment_id INTEGER NOT NULL,

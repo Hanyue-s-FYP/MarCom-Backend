@@ -13,7 +13,6 @@ const (
 // cycle can start from 0 (which is the initialisation cycle to init the simulation)
 type SimulationCycle struct {
 	ID               int
-	Profit           float64
 	SimulationEvents []SimulationEvent
 }
 
@@ -52,7 +51,7 @@ type simulationModel struct{}
 var SimulationModel *simulationModel
 
 // only get the simulation out, simulation cycle should be handled in the business logic part
-func (*simulationModel) GetSimulationByID(id int) (*Simulation, error) {
+func (*simulationModel) GetByID(id int) (*Simulation, error) {
 	var simulation Simulation
 	query := `SELECT * FROM Simulations WHERE id = ?`
 	row := db.GetDB().QueryRow(query, id)
@@ -63,7 +62,7 @@ func (*simulationModel) GetSimulationByID(id int) (*Simulation, error) {
 	return &simulation, nil
 }
 
-func (*simulationModel) GetAllSimulations() ([]Simulation, error) {
+func (*simulationModel) GetAll() ([]Simulation, error) {
 	var simulations []Simulation
 	query := `SELECT * FROM Simulations`
 	rows, err := db.GetDB().Query(query)
@@ -83,7 +82,7 @@ func (*simulationModel) GetAllSimulations() ([]Simulation, error) {
 	return simulations, nil
 }
 
-func (*simulationModel) GetSimulationsByBusinessID(businessID int) ([]Simulation, error) {
+func (*simulationModel) GetAllByBusinessID(businessID int) ([]Simulation, error) {
 	var simulations []Simulation
 	query := `SELECT * FROM Simulations WHERE business_id = ?`
 	rows, err := db.GetDB().Query(query, businessID)
@@ -101,6 +100,25 @@ func (*simulationModel) GetSimulationsByBusinessID(businessID int) ([]Simulation
 	}
 
 	return simulations, nil
+}
+
+func (*simulationModel) Create(s Simulation) error {
+	query := `
+        INSERT INTO Simulations (name, max_cycle_count, is_price_opt_enabled, status, environment_id, business_id)
+        VALUES (?, ?, ?, ?, ?, ?)
+    `
+	_, err := db.GetDB().Exec(query, s.Name, s.MaxCycleCount, s.IsPriceOptEnabled, s.Status, s.EnvironmentID, s.BusinessID)
+	return err
+}
+
+func (*simulationModel) Update(s Simulation) error {
+    query := `
+        UPDATE Simulations
+        SET name = ?, max_cycle_count = ?, is_price_opt_enabled = ?, status = ?, environment_id = ?
+        WHERE id = ?;
+    `
+    _, err := db.GetDB().Exec(query, s.Name, s.MaxCycleCount, s.IsPriceOptEnabled, s.Status, s.EnvironmentID, s.ID)
+    return err
 }
 
 // TODO fetch all the simulation cycle of that
