@@ -14,7 +14,7 @@ type Config struct {
 	PORT       string
 	HOST       string
 	DB_PATH    string
-    GRPC_SIMULATION_ADDR string
+    GRPC_CORE_ADDR string
 	IMG_FOLDER string
 }
 
@@ -55,7 +55,7 @@ func NewConfig(filename string) *Config {
 			HOST:       os.Getenv("HOST"),
 			PORT:       os.Getenv("PORT"),
 			DB_PATH:    os.Getenv("DB_PATH"),
-            GRPC_SIMULATION_ADDR: os.Getenv("GRPC_SIMULATION_ADDR"),
+            GRPC_CORE_ADDR: os.Getenv("GRPC_CORE_ADDR"),
 			IMG_FOLDER: os.Getenv("IMG_FOLDER"),
 		}
 	} else {
@@ -65,7 +65,7 @@ func NewConfig(filename string) *Config {
 			HOST:       "localhost",
 			PORT:       "8080",
 			DB_PATH:    "marcom.db",
-            GRPC_SIMULATION_ADDR: "localhost:50051",
+            GRPC_CORE_ADDR: "localhost:50051",
 			IMG_FOLDER: "img",
 		}
 	}
