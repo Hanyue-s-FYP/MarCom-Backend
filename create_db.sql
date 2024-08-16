@@ -75,7 +75,6 @@ CREATE TABLE IF NOT EXISTS EnvironmentAgents (
 
 CREATE TABLE IF NOT EXISTS SimulationEvents (
     id INTEGER PRIMARY KEY,
-    prompt TEXT NOT NULL,
     event_type INTEGER NOT NULL,
     event_description TEXT NOT NULL,
     agent_id INTEGER NULL,
@@ -88,6 +87,7 @@ CREATE TABLE IF NOT EXISTS SimulationEvents (
 CREATE TABLE IF NOT EXISTS SimulationCycles (
     id INTEGER PRIMARY KEY,
     simulation_id INTEGER NOT NULL,
+    cycle_number INTEGER NOT NULL,
     time DATETIME NOT NULL, -- to preserve the order, more consistent when sorting
     FOREIGN KEY (simulation_id) REFERENCES Simulations(id)
 );

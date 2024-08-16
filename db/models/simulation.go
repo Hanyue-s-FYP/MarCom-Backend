@@ -1,6 +1,10 @@
 package models
 
-import "github.com/Hanyue-s-FYP/Marcom-Backend/db"
+import (
+	"time"
+
+	"github.com/Hanyue-s-FYP/Marcom-Backend/db"
+)
 
 type SimulationStatus int
 
@@ -13,6 +17,8 @@ const (
 // cycle can start from 0 (which is the initialisation cycle to init the simulation)
 type SimulationCycle struct {
 	ID               int
+	CycleNumber      int
+	SimulationId     int
 	SimulationEvents []SimulationEvent
 }
 
@@ -22,16 +28,26 @@ type SimulationEventType int
 const (
 	SimulationEventBuy = iota
 	SimulationEventSkip
-	SimulationEventTalk
+	SimulationEventMessage
 	SimulationEventSimulation
 	SimulationEventActionResp
 )
 
+func SimulationEventTypeMapper(evType string) SimulationEventType {
+	mapper := map[string]SimulationEventType{
+		"BUY":         SimulationEventBuy,
+		"SKIP":        SimulationEventSkip,
+		"MESSAGE":     SimulationEventMessage,
+		"SIMULATION":  SimulationEventSimulation,
+		"ACTION_RESP": SimulationEventActionResp,
+	}
+	return mapper[evType]
+}
+
 type SimulationEvent struct {
 	Agent            *Agent // nullable
 	ID               int
-	Prompt           string
-	EventType        int
+	EventType        SimulationEventType
 	EventDescription string
 }
 
@@ -112,16 +128,129 @@ func (*simulationModel) Create(s Simulation) error {
 }
 
 func (*simulationModel) Update(s Simulation) error {
-    query := `
+	query := `
         UPDATE Simulations
         SET name = ?, max_cycle_count = ?, is_price_opt_enabled = ?, status = ?, environment_id = ?
         WHERE id = ?;
     `
-    _, err := db.GetDB().Exec(query, s.Name, s.MaxCycleCount, s.IsPriceOptEnabled, s.Status, s.EnvironmentID, s.ID)
-    return err
+	_, err := db.GetDB().Exec(query, s.Name, s.MaxCycleCount, s.IsPriceOptEnabled, s.Status, s.EnvironmentID, s.ID)
+	return err
+}
+
+func (*simulationModel) NewSimulationCycle(simId int, cycle SimulationCycle) error {
+	query := `
+		INSERT INTO SimulationCycles (simulation_id, cycle_number, time)
+		VALUES (?, ?, ?)
+	`
+
+	_, err := db.GetDB().Exec(query, cycle.CycleNumber, time.Now())
+
+	return err
+}
+
+func (*simulationModel) GetSimulationCyclesBySimID(simId int) ([]SimulationCycle, error) {
+	query := `
+		SELECT id, simulation_id, cycle_number
+		FROM SimulationCycles
+		WHERE simulation_id = ?
+		ORDER BY time
+	`
+
+	rows, err := db.GetDB().Query(query, simId)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var cycles []SimulationCycle
+	for rows.Next() {
+		var cycle SimulationCycle
+		err := rows.Scan(&cycle.ID, &cycle.SimulationId, &cycle.CycleNumber)
+		if err != nil {
+			return nil, err
+		}
+		cycleEvents, err := getSimulationEventByCycleID(cycle.ID)
+		if err != nil {
+			return nil, err
+		}
+		cycle.SimulationEvents = cycleEvents
+		cycles = append(cycles, cycle)
+	}
+
+	return cycles, nil
+}
+
+func (*simulationModel) GetSimulationCycleIdBySimCycle(simId, cycleNum int) (int, error) {
+	query := `
+		SELECT id
+		FROM SimulationCycles
+		WHERE simulation_id = ? AND cycle_number = ?
+	`
+	var id int
+	row := db.GetDB().QueryRow(query, simId, cycleNum)
+
+	if err := row.Scan(&id); err != nil {
+		return -1, err
+	}
+
+	return id, nil
+}
+
+func (*simulationModel) NewSimulationEvent(cycleId int, event SimulationEvent) error {
+	// business logic there should handle that the cycle exists
+	query := `
+		INSERT INTO SimulationEvents (event_type, event_description, agent_id, cycle_id, time)
+		VALUES (?, ?, ?, ?, ?)
+	`
+
+	// returns nil or int depends if a is nil or an Agent
+	agentId := func(a *Agent) any {
+		if a != nil {
+			return a.ID
+		} else {
+			return 0 // since auto increment, 0 is not used, so can be used to indicate this field has no value
+		}
+	}
+
+	_, err := db.GetDB().Exec(query, event.EventType, event.EventDescription, agentId(event.Agent), cycleId, time.Now())
+
+	return err
 }
 
 // TODO fetch all the simulation cycle of that
-func getSimulationCyclesAndEvents(simID int) ([]SimulationCycle, error) {
-	return nil, nil
+func getSimulationEventByCycleID(cycleId int) ([]SimulationEvent, error) {
+	query := `
+        SELECT id, event_type, event_description, agent_id
+        FROM SimulationEvents
+        WHERE cycle_id = ?
+        ORDER BY time
+    `
+
+	rows, err := db.GetDB().Query(query, cycleId)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var events []SimulationEvent
+	for rows.Next() {
+		var event SimulationEvent
+		var agentId int
+		err := rows.Scan(&event.ID, &event.EventType, &event.EventDescription, &agentId)
+		if err != nil {
+			return nil, err
+		}
+
+		if agentId != 0 {
+			agent, err := AgentModel.GetByID(agentId)
+			if err != nil {
+				return nil, err
+			}
+			event.Agent = agent
+		}
+
+		events = append(events, event)
+	}
+
+	return events, nil
 }

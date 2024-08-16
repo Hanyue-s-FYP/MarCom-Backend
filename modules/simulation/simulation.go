@@ -2,6 +2,7 @@ package simulation
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -275,10 +276,47 @@ func streamSimulationUpdate(id int) {
 			}
 			if err != nil {
 				slog.Error(fmt.Sprintf("%v.StreamSimulationUpdates(_) = _, %v", client, err))
-                break
+				break
 			}
 			slog.Info(fmt.Sprintf("Got event from simulation server: %v", simulationEvent))
-			// TODO add to database
+			dbSimulationEvent := models.SimulationEvent{
+				EventType:        models.SimulationEventTypeMapper(simulationEvent.Action),
+				EventDescription: simulationEvent.Content,
+			}
+			if simulationEvent.AgentId != 0 {
+				agent, err := models.AgentModel.GetByID(int(simulationEvent.AgentId))
+				if err != nil {
+					slog.Error(fmt.Sprintf("failed to obtain agent of the event: %v", err))
+					continue
+				}
+				dbSimulationEvent.Agent = agent
+			}
+			if cycleId, err := models.SimulationModel.GetSimulationCycleIdBySimCycle(int(simulationEvent.SimulationId), int(simulationEvent.Cycle)); err != nil {
+				if errors.Is(err, sql.ErrNoRows) {
+					err := models.SimulationModel.NewSimulationCycle(int(simulationEvent.SimulationId), models.SimulationCycle{
+						CycleNumber:  int(simulationEvent.Cycle),
+						SimulationId: int(simulationEvent.SimulationId),
+					})
+					if err != nil {
+						slog.Error(fmt.Sprintf("failed to create cycle of simulation: %v", err))
+						continue
+					}
+					err = models.SimulationModel.NewSimulationEvent(cycleId, dbSimulationEvent)
+					if err != nil {
+						slog.Error(fmt.Sprintf("failed to create event of simulation cycle: %v", err))
+						continue
+					}
+				} else {
+					slog.Error(fmt.Sprintf("failed to obtain cycle of simulation: %v", err))
+					continue
+				}
+			} else {
+				err := models.SimulationModel.NewSimulationEvent(cycleId, dbSimulationEvent)
+				if err != nil {
+					slog.Error(fmt.Sprintf("failed to create event of simulation cycle: %v", err))
+					continue
+				}
+			}
 		}
 	})
 }
