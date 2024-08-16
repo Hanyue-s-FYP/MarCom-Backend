@@ -23,7 +23,7 @@ func ResponseJSON[T any](w http.ResponseWriter, obj *T, statusCode int) {
 		return
 	}
 	slog.Info(fmt.Sprintf("%d %s", statusCode, string(jsonBytes)))
-    w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
 	fmt.Fprint(w, string(jsonBytes))
 }
