@@ -31,4 +31,3 @@ func main() {
 		panic(err) // cant even start listen d what else to do lol
 	}
 }
-
