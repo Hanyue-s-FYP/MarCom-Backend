@@ -188,6 +188,23 @@ func (*simulationModel) GetSimulationCyclesBySimID(simId int) ([]SimulationCycle
 	return cycles, nil
 }
 
+func (*simulationModel) GetSimulationCycleByCycleID(cycleId int) (*SimulationCycle, error) {
+	query := `
+		SELECT id, simulation_id, cycle_number
+		FROM SimulationCycles
+		WHERE id = ?
+	`
+
+	var cycle SimulationCycle
+	row := db.GetDB().QueryRow(query, cycleId)
+
+	if err := row.Scan(&cycle.ID, &cycle.SimulationId, &cycle.CycleNumber); err != nil {
+		return nil, err
+	}
+
+	return &cycle, nil
+}
+
 func (*simulationModel) GetSimulationCycleIdBySimCycle(simId, cycleNum int) (int, error) {
 	query := `
 		SELECT id

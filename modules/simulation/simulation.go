@@ -396,6 +396,70 @@ OuterLoop:
 	simulationUpdateListenerLock.Unlock()
 }
 
+func GetSimulationCyclesBySimID(w http.ResponseWriter, r *http.Request) (*modules.SliceWrapper[models.SimulationCycle], error) {
+	// id of the environment shall be made accessible via route variable {id}
+	id := r.PathValue("id")
+	if id == "" {
+		return nil, utils.HttpError{
+			Code:       http.StatusNotFound,
+			Message:    "Expected ID in path, found empty string",
+			LogMessage: "unexpected empty string in request when matching wildcard {id}",
+		}
+	}
+
+	idInt, err := strconv.Atoi(id)
+	if err != nil {
+		return nil, utils.HttpError{
+			Code:       http.StatusInternalServerError,
+			Message:    "Failed to parse simulation ID from request",
+			LogMessage: fmt.Sprintf("failed to parse simulation ID from request: %v", err),
+		}
+	}
+
+	simCycles, err := models.SimulationModel.GetSimulationCyclesBySimID(idInt)
+	if err != nil {
+		return nil, utils.HttpError{
+			Code:       http.StatusInternalServerError,
+			Message:    "Failed to obtain simulation cycles",
+			LogMessage: fmt.Sprintf("failed to obtain simulation cycles: %v", err),
+		}
+	}
+
+	return &modules.SliceWrapper[models.SimulationCycle]{Data: simCycles}, nil
+}
+
+func GetSimulationCycleByCycleID(w http.ResponseWriter, r *http.Request) (*models.SimulationCycle, error) {
+	// id of the environment shall be made accessible via route variable {id}
+	id := r.PathValue("id")
+	if id == "" {
+		return nil, utils.HttpError{
+			Code:       http.StatusNotFound,
+			Message:    "Expected ID in path, found empty string",
+			LogMessage: "unexpected empty string in request when matching wildcard {id}",
+		}
+	}
+
+	idInt, err := strconv.Atoi(id)
+	if err != nil {
+		return nil, utils.HttpError{
+			Code:       http.StatusInternalServerError,
+			Message:    "Failed to parse simulation cycle ID from request",
+			LogMessage: fmt.Sprintf("failed to parse simulation cycle ID from request: %v", err),
+		}
+	}
+
+	simCycle, err := models.SimulationModel.GetSimulationCycleByCycleID(idInt)
+	if err != nil {
+		return nil, utils.HttpError{
+			Code:       http.StatusInternalServerError,
+			Message:    "Failed to obtain simulation cycle",
+			LogMessage: fmt.Sprintf("failed to obtain simulation cycle: %v", err),
+		}
+	}
+
+	return simCycle, nil
+}
+
 // should not be called by client (stream is handled by start simulation)
 func streamSimulationUpdate(id int) {
 	utils.UseCoreGRPCClient(func(client core_pb.MarcomServiceClient) {
