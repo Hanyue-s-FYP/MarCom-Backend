@@ -10,7 +10,7 @@ import (
 type User struct {
 	ID          int
 	Username    string
-	Password    string `json:"-"` // always ignore this field in JSON encoding responses
+	Password    string
 	DisplayName string
 	Email       string
 	Status      int
@@ -151,15 +151,15 @@ func (*businessModel) GetByUsername(username string) (*Business, error) {
 }
 
 func (*businessModel) Update(business Business) error {
-    // only description and cover image can be updated
-    updateQuery := `
+	// only description and cover image can be updated
+	updateQuery := `
         UPDATE Businesses
         SET description = ?, cover_img_path = ?
         WHERE id = ?
     `
 
-    _, err := db.GetDB().Exec(updateQuery, business.Description, business.CoverImgPath, business.ID)
-    return err
+	_, err := db.GetDB().Exec(updateQuery, business.Description, business.CoverImgPath, business.ID)
+	return err
 }
 
 type userModel struct{}
@@ -192,5 +192,3 @@ func (*userModel) GetByID(id int) (*User, error) {
 
 	return &user, nil
 }
-
-

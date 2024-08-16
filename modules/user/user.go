@@ -141,8 +141,17 @@ func Login(w http.ResponseWriter, r *http.Request) (*LoginResponse, error) {
 	}
 }
 
+type UserWithoutPassword struct {
+	ID          int
+	Username    string
+	DisplayName string
+	Email       string
+	Status      int
+	PhoneNumber string
+}
+
 type UserWithRole struct {
-	models.User
+	User   UserWithoutPassword
 	Role   models.UserRole
 	RoleID int //denotes the id for that specific role, if role is business then is business id vice versa
 }
@@ -192,13 +201,28 @@ func GetMe(w http.ResponseWriter, r *http.Request) (*UserWithRole, error) {
 	}
 
 	return &UserWithRole{
-		User:   *user,
+		User: UserWithoutPassword{
+			ID:          user.ID,
+			Username:    user.Username,
+			DisplayName: user.DisplayName,
+			Email:       user.Email,
+			Status:      user.Status,
+			PhoneNumber: user.PhoneNumber,
+		},
 		Role:   models.UserRole(role),
 		RoleID: id,
 	}, nil
 }
 
-func GetBusiness(w http.ResponseWriter, r *http.Request) (*models.Business, error) {
+type BusinessWithoutPassword struct {
+	User         UserWithoutPassword
+	ID           int
+	Description  string
+	BusinessType string
+	CoverImgPath string
+}
+
+func GetBusiness(w http.ResponseWriter, r *http.Request) (*BusinessWithoutPassword, error) {
 	idStr := r.PathValue("id") // assumes {id} exists in the route
 	if len(idStr) == 0 {
 		return nil, utils.HttpError{
@@ -231,7 +255,20 @@ func GetBusiness(w http.ResponseWriter, r *http.Request) (*models.Business, erro
 			LogMessage: fmt.Sprintf("failed to obtain business: %v", err),
 		}
 	}
-	return business, nil
+	return &BusinessWithoutPassword{
+		User: UserWithoutPassword{
+			ID:          business.User.ID,
+			Username:    business.User.Username,
+			DisplayName: business.User.DisplayName,
+			Email:       business.User.Email,
+			Status:      business.User.Status,
+			PhoneNumber: business.User.PhoneNumber,
+		},
+		ID:           business.ID,
+		Description:  business.Description,
+		BusinessType: business.BusinessType,
+		CoverImgPath: business.CoverImgPath,
+	}, nil
 }
 
 /*
@@ -247,20 +284,20 @@ func UpdateBusiness(w http.ResponseWriter, r *http.Request) (*modules.ExecRespon
 
 	idStr := r.FormValue("ID")
 	slog.Info(fmt.Sprintf("Updating business with ID: %s", idStr))
-    if id, err := strconv.Atoi(idStr); err != nil {
-        return nil, utils.HttpError{
-            Code: http.StatusInternalServerError,
-            Message: "Failed to parse business ID",
-            LogMessage: fmt.Sprintf("failed to parse business ID when updating business: %v", err),
-        }
-    } else {
-        business.ID = id
-    }
+	if id, err := strconv.Atoi(idStr); err != nil {
+		return nil, utils.HttpError{
+			Code:       http.StatusInternalServerError,
+			Message:    "Failed to parse business ID",
+			LogMessage: fmt.Sprintf("failed to parse business ID when updating business: %v", err),
+		}
+	} else {
+		business.ID = id
+	}
 
-    // get all the other form values that can be updated
-    business.Description = r.FormValue("Description")
-    business.CoverImgPath = r.FormValue("CoverImgPath")
-    
+	// get all the other form values that can be updated
+	business.Description = r.FormValue("Description")
+	business.CoverImgPath = r.FormValue("CoverImgPath")
+
 	// front end will handle new cover image will send back through another property for easy purpose (no need mess with complex typing)
 	// the CoverImgPath property should be left unchanged and remain original when sent back from front end
 	file, header, err := r.FormFile("NewCoverImg")
@@ -275,16 +312,16 @@ func UpdateBusiness(w http.ResponseWriter, r *http.Request) (*modules.ExecRespon
 	// only if got file, handle upload file
 	if !errors.Is(err, http.ErrMissingFile) {
 		slog.Info(fmt.Sprintf("Obtained file, Filename: %s", header.Filename))
-        uploadPath, err := db.UploadImage(&file, header)
-        if err != nil {
-            return nil, utils.HttpError{
-                Code: http.StatusInternalServerError,
-                Message: "Failed to upload image",
-                LogMessage: fmt.Sprintf("failed to upload file to database: %v", err),
-            }
-        }
-        slog.Info(fmt.Sprintf("File uploaded to: %s", uploadPath))
-        business.CoverImgPath = uploadPath
+		uploadPath, err := db.UploadImage(&file, header)
+		if err != nil {
+			return nil, utils.HttpError{
+				Code:       http.StatusInternalServerError,
+				Message:    "Failed to upload image",
+				LogMessage: fmt.Sprintf("failed to upload file to database: %v", err),
+			}
+		}
+		slog.Info(fmt.Sprintf("File uploaded to: %s", uploadPath))
+		business.CoverImgPath = uploadPath
 	}
 
 	// only should be cannot get count
