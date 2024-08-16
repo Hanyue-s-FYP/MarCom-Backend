@@ -19,10 +19,10 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	MarcomService_StartSimulation_FullMethodName           = "/simulation.MarcomService/StartSimulation"
-	MarcomService_PauseSimulation_FullMethodName           = "/simulation.MarcomService/PauseSimulation"
-	MarcomService_StreamSimulationUpdates_FullMethodName   = "/simulation.MarcomService/StreamSimulationUpdates"
-	MarcomService_ResearchProductCompetitor_FullMethodName = "/simulation.MarcomService/ResearchProductCompetitor"
+	MarcomService_StartSimulation_FullMethodName           = "/MarcomService.MarcomService/StartSimulation"
+	MarcomService_PauseSimulation_FullMethodName           = "/MarcomService.MarcomService/PauseSimulation"
+	MarcomService_StreamSimulationUpdates_FullMethodName   = "/MarcomService.MarcomService/StreamSimulationUpdates"
+	MarcomService_ResearchProductCompetitor_FullMethodName = "/MarcomService.MarcomService/ResearchProductCompetitor"
 )
 
 // MarcomServiceClient is the client API for MarcomService service.
@@ -212,7 +212,7 @@ func _MarcomService_ResearchProductCompetitor_Handler(srv interface{}, ctx conte
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var MarcomService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "simulation.MarcomService",
+	ServiceName: "MarcomService.MarcomService",
 	HandlerType: (*MarcomServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
