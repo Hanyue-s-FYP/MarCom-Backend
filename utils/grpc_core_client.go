@@ -11,7 +11,7 @@ import (
 
 // creates the grpc simulation service client and calls callback with the client
 func UseCoreGRPCClient(callback func(client core_pb.MarcomServiceClient)) {
-    config := GetConfig()
+	config := GetConfig()
 
 	conn, err := grpc.NewClient(config.GRPC_CORE_ADDR, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
@@ -20,5 +20,5 @@ func UseCoreGRPCClient(callback func(client core_pb.MarcomServiceClient)) {
 	defer conn.Close()
 
 	client := core_pb.NewMarcomServiceClient(conn)
-    callback(client)
+	callback(client)
 }

@@ -254,9 +254,21 @@ func StartSimulation(w http.ResponseWriter, r *http.Request) (*modules.ExecRespo
 		return nil, utils.HttpError{
 			Code:       http.StatusInternalServerError,
 			Message:    "Failed to start simulation",
-			LogMessage: fmt.Sprintf("failed to send simulation data to grpc server: %v", err),
+			LogMessage: fmt.Sprintf("failed to send simulation data to grpc server: %v", startSimulationErr),
 		}
 	}
+
+	sim.Status = models.SimulationRunning
+	models.SimulationModel.Update(*sim)
+	sim, err = models.SimulationModel.GetByID(idInt)
+	if err != nil {
+		return nil, utils.HttpError{
+			Code:       http.StatusInternalServerError,
+			Message:    "Failed to start simulation",
+			LogMessage: fmt.Sprintf("failed to obtain simulation: %v", err),
+		}
+	}
+	slog.Info(fmt.Sprintf("in StartSimulation: {SimulationStatus: %d}", sim.Status))
 
 	go streamSimulationUpdate(sim.ID)
 
@@ -274,7 +286,7 @@ type SimulationEventUpdateChannels struct {
 }
 
 var (
-	simulationUpdateListeners    map[int]SimulationEventUpdateChannels
+	simulationUpdateListeners    map[int]SimulationEventUpdateChannels = make(map[int]SimulationEventUpdateChannels, 0)
 	simulationUpdateListenerLock sync.Mutex
 )
 
@@ -313,6 +325,7 @@ func ListenToSimulationUpdates(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
+	slog.Info(fmt.Sprintf("in ListenToSimulation: {SimulationStatus: %d}", sim.Status))
 
 	if sim.Status != models.SimulationRunning {
 		utils.ResponseError(w, utils.HttpError{
@@ -337,8 +350,8 @@ func ListenToSimulationUpdates(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		utils.ResponseError(w, utils.HttpError{
 			Code:       http.StatusInternalServerError,
-			Message:    "Failed to listen to simulation event updates",
-			LogMessage: fmt.Sprintf("failed to "),
+			Message:    "Failed to listen to simulation event updates, SSE is not supported",
+			LogMessage: fmt.Sprintf("failed to listen to simulation event updates: %v", "cannot cast http.Writer to http.Flusher"),
 		})
 		return
 	}
@@ -346,8 +359,15 @@ OuterLoop:
 	for {
 		select {
 		case <-ctx.Done(): // exit the loop when disconnected
+			slog.Info(fmt.Sprintf("Client disconnected: %v", ctx.Err()))
 			break OuterLoop
 		case <-updateEndCh:
+			slog.Info("sending stop signal to client")
+			sb := strings.Builder{}
+			sb.WriteString(fmt.Sprintf("event: %s\n", "simulation-complete"))
+			sb.WriteString(fmt.Sprintf("data: %v\n\n", "STOP"))
+			fmt.Fprint(w, sb.String())
+			flusher.Flush()
 			break OuterLoop
 		case e := <-updateCh:
 			jsonBytes, err := json.Marshal(e)
@@ -367,12 +387,11 @@ OuterLoop:
 		}
 	}
 
+	slog.Info(fmt.Sprintf("closing update channel for simulation id: %d", idInt))
 	// remove the listener from the map (code reach here only in 2 conditions: user disconnect or simulation completed)
 	simulationUpdateListenerLock.Lock()
-	// closing is up to this call anyways, just a safety precaution
-	if _, ok = <-updateCh; !ok {
-		close(updateCh)
-	}
+	close(updateCh)
+	close(updateEndCh)
 	delete(simulationUpdateListeners, idInt)
 	simulationUpdateListenerLock.Unlock()
 }
@@ -435,8 +454,27 @@ func streamSimulationUpdate(id int) {
 			}
 		}
 	})
+	slog.Info(fmt.Sprintf("Simulation with ID %d completed", id))
+	sim, err := models.SimulationModel.GetByID(id)
+	if err != nil {
+		slog.Error(fmt.Sprintf("failed to obtain simulation: %v", err))
+		return
+	}
+
+	sim.Status = models.SimulationCompleted
+	err = models.SimulationModel.Update(*sim)
+	if err != nil {
+		slog.Error(fmt.Sprintf("failed to update simulation status: %v", err))
+		return
+	}
+
 	// I guess might need to send a signal to notify complete
-	simulationUpdateListeners[id].simulationUpdateEnd <- struct{}{}
+	simulationUpdateListenerLock.Lock() // it might occur that the map is being deleted when this happened, so lock first
+	// check if there is any listener of this event, if there is, check if it is open and send updates to it
+	if ch, ok := simulationUpdateListeners[id]; ok {
+		ch.simulationUpdateEnd <- struct{}{}
+	}
+	simulationUpdateListenerLock.Unlock()
 }
 
 // creates new simulation event that also handles sending update to listener (if any)
@@ -447,14 +485,14 @@ func newSimulationEventWithUpdate(simId, cycleId int, ev models.SimulationEvent)
 	}
 
 	ev.ID = id
+	simulationUpdateListenerLock.Lock() // it might occur that the map is being deleted when this happened, so lock first
 	// check if there is any listener of this event, if there is, check if it is open and send updates to it
 	if ch, ok := simulationUpdateListeners[simId]; ok {
-		if _, ok = <-ch.simulationUpdateListener; ok {
-			ch.simulationUpdateListener <- ComplexSimulationEvent{
-				SimulationEvent: ev,
-				CycleId:         cycleId,
-			}
+		ch.simulationUpdateListener <- ComplexSimulationEvent{
+			SimulationEvent: ev,
+			CycleId:         cycleId,
 		}
 	}
+	simulationUpdateListenerLock.Unlock()
 	return nil
 }

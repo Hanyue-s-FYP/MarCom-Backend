@@ -143,7 +143,7 @@ func (*simulationModel) NewSimulationCycle(simId int, cycle SimulationCycle) (in
 		VALUES (?, ?, ?)
 	`
 
-	res, err := db.GetDB().Exec(query, cycle.CycleNumber, time.Now())
+	res, err := db.GetDB().Exec(query, simId, cycle.CycleNumber, time.Now())
 
 	if err != nil {
 		return 0, err
