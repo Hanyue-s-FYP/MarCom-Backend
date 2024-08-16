@@ -29,11 +29,11 @@ func SetupRouter(r *http.ServeMux) {
 	// Auth routes
 	r.HandleFunc("POST /login", utils.MakeHttpHandler(user.Login))
 	r.HandleFunc("POST /register-business", utils.MakeHttpHandler(user.RegisterBusiness, 201))
-    r.HandleFunc("GET /get-me", utils.MakeHttpHandler(user.GetMe))
+	r.HandleFunc("GET /get-me", utils.MakeHttpHandler(user.GetMe))
 
-    // Business routes
-    r.HandleFunc("GET /business/{id}", utils.MakeHttpHandler(user.GetBusiness))
-    r.HandleFunc("PUT /business", utils.MakeHttpHandler(user.UpdateBusiness))
+	// Business routes
+	r.HandleFunc("GET /business/{id}", utils.MakeHttpHandler(user.GetBusiness))
+	r.HandleFunc("PUT /business", utils.MakeHttpHandler(user.UpdateBusiness))
 
 	// Product routes
 	r.HandleFunc("GET /products", utils.MakeHttpHandler(product.GetAllProducts))
@@ -61,17 +61,18 @@ func SetupRouter(r *http.ServeMux) {
 	r.HandleFunc("PUT /environments", utils.MakeHttpHandler(environment.UpdateEnvironment))
 	r.HandleFunc("DELETE /environments/{id}", utils.MakeHttpHandler(environment.DeleteEnvironment))
 
-    // Simulation routes
+	// Simulation routes
 	r.HandleFunc("GET /simulations", utils.MakeHttpHandler(simulation.GetAllSimulations))
 	r.HandleFunc("GET /simulations/{id}", utils.MakeHttpHandler(simulation.GetSimulation))
 	r.HandleFunc("GET /business-simulations/{id}", utils.MakeHttpHandler(simulation.GetSimulationsByBusinessID))
 	r.HandleFunc("POST /simulations", utils.MakeHttpHandler(simulation.CreateSimulation))
 	r.HandleFunc("PUT /simulations", utils.MakeHttpHandler(simulation.UpdateSimulation))
-    r.HandleFunc("GET /start-simulation/{id}", utils.MakeHttpHandler(simulation.StartSimulation))
-    // TODO
+	r.HandleFunc("GET /simulations/start/{id}", utils.MakeHttpHandler(simulation.StartSimulation))
+	r.HandleFunc("GET /simulations/listen/{id}", simulation.ListenToSimulationUpdates)
+	// TODO
 	r.HandleFunc("DELETE /simulations/{id}", utils.MakeHttpHandler(simulation.UpdateSimulation))
 
-    // handle images (load the path from config)
-    imgPrefix := fmt.Sprintf("/%s/", utils.GetConfig().IMG_FOLDER)
-    r.Handle(imgPrefix, http.StripPrefix(imgPrefix, http.FileServer(http.Dir(utils.GetConfig().IMG_FOLDER))))
+	// handle images (load the path from config)
+	imgPrefix := fmt.Sprintf("/%s/", utils.GetConfig().IMG_FOLDER)
+	r.Handle(imgPrefix, http.StripPrefix(imgPrefix, http.FileServer(http.Dir(utils.GetConfig().IMG_FOLDER))))
 }

@@ -137,15 +137,23 @@ func (*simulationModel) Update(s Simulation) error {
 	return err
 }
 
-func (*simulationModel) NewSimulationCycle(simId int, cycle SimulationCycle) error {
+func (*simulationModel) NewSimulationCycle(simId int, cycle SimulationCycle) (int, error) {
 	query := `
 		INSERT INTO SimulationCycles (simulation_id, cycle_number, time)
 		VALUES (?, ?, ?)
 	`
 
-	_, err := db.GetDB().Exec(query, cycle.CycleNumber, time.Now())
+	res, err := db.GetDB().Exec(query, cycle.CycleNumber, time.Now())
 
-	return err
+	if err != nil {
+		return 0, err
+	}
+
+	if id, err := res.LastInsertId(); err != nil {
+		return 0, err
+	} else {
+		return int(id), nil
+	}
 }
 
 func (*simulationModel) GetSimulationCyclesBySimID(simId int) ([]SimulationCycle, error) {
@@ -196,7 +204,7 @@ func (*simulationModel) GetSimulationCycleIdBySimCycle(simId, cycleNum int) (int
 	return id, nil
 }
 
-func (*simulationModel) NewSimulationEvent(cycleId int, event SimulationEvent) error {
+func (*simulationModel) NewSimulationEvent(cycleId int, event SimulationEvent) (int, error) {
 	// business logic there should handle that the cycle exists
 	query := `
 		INSERT INTO SimulationEvents (event_type, event_description, agent_id, cycle_id, time)
@@ -212,9 +220,17 @@ func (*simulationModel) NewSimulationEvent(cycleId int, event SimulationEvent) e
 		}
 	}
 
-	_, err := db.GetDB().Exec(query, event.EventType, event.EventDescription, agentId(event.Agent), cycleId, time.Now())
+	res, err := db.GetDB().Exec(query, event.EventType, event.EventDescription, agentId(event.Agent), cycleId, time.Now())
 
-	return err
+	if err != nil {
+		return 0, err
+	}
+
+	if id, err := res.LastInsertId(); err != nil {
+		return 0, err
+	} else {
+		return int(id), nil
+	}
 }
 
 // TODO fetch all the simulation cycle of that

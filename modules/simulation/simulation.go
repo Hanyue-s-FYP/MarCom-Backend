@@ -10,6 +10,8 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+	"strings"
+	"sync"
 
 	"github.com/Hanyue-s-FYP/Marcom-Backend/db/models"
 	"github.com/Hanyue-s-FYP/Marcom-Backend/modules"
@@ -261,6 +263,120 @@ func StartSimulation(w http.ResponseWriter, r *http.Request) (*modules.ExecRespo
 	return &modules.ExecResponse{Message: startSimulationMessage}, nil
 }
 
+type ComplexSimulationEvent struct {
+	models.SimulationEvent
+	CycleId int
+}
+
+type SimulationEventUpdateChannels struct {
+	simulationUpdateListener chan ComplexSimulationEvent
+	simulationUpdateEnd      chan struct{}
+}
+
+var (
+	simulationUpdateListeners    map[int]SimulationEventUpdateChannels
+	simulationUpdateListenerLock sync.Mutex
+)
+
+// not a API Func, rather, is already a http handler (SSE require unique handling)
+func ListenToSimulationUpdates(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/event-stream") // declare that it is indeed SSE
+
+	// assume simulation id is in the path
+	id := r.PathValue("id")
+	if id == "" {
+		utils.ResponseError(w, utils.HttpError{
+			Code:       http.StatusNotFound,
+			Message:    "Expected ID in path, found empty string",
+			LogMessage: "unexpected empty string in request when matching wildcard {id}",
+		})
+		return
+	}
+
+	idInt, err := strconv.Atoi(id)
+	if err != nil {
+		utils.ResponseError(w, utils.HttpError{
+			Code:       http.StatusInternalServerError,
+			Message:    "Failed to parse simulation ID from request",
+			LogMessage: fmt.Sprintf("failed to parse simulation ID from request: %v", err),
+		})
+		return
+	}
+
+	// check if the simulation is running (to minimise waste of resource)
+	sim, err := models.SimulationModel.GetByID(idInt)
+	if err != nil {
+		utils.ResponseError(w, utils.HttpError{
+			Code:       http.StatusInternalServerError,
+			Message:    "Failed to obtain simulation from request",
+			LogMessage: fmt.Sprintf("failed to obtain simulation from request: %v", err),
+		})
+		return
+	}
+
+	if sim.Status != models.SimulationRunning {
+		utils.ResponseError(w, utils.HttpError{
+			Code:       http.StatusInternalServerError,
+			Message:    "Failed to listen to simulation event updates",
+			LogMessage: "failed to listen to simulation event updates: simulation is not running",
+		})
+		return
+	}
+
+	ctx := r.Context()
+	updateCh := make(chan ComplexSimulationEvent) // channel should be closed only when user disconnect or simulation complete or simulation paused
+	updateEndCh := make(chan struct{})
+	simulationUpdateListenerLock.Lock()
+	simulationUpdateListeners[idInt] = SimulationEventUpdateChannels{
+		simulationUpdateListener: updateCh,
+		simulationUpdateEnd:      updateEndCh,
+	}
+	simulationUpdateListenerLock.Unlock()
+
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		utils.ResponseError(w, utils.HttpError{
+			Code:       http.StatusInternalServerError,
+			Message:    "Failed to listen to simulation event updates",
+			LogMessage: fmt.Sprintf("failed to "),
+		})
+		return
+	}
+OuterLoop:
+	for {
+		select {
+		case <-ctx.Done(): // exit the loop when disconnected
+			break OuterLoop
+		case <-updateEndCh:
+			break OuterLoop
+		case e := <-updateCh:
+			jsonBytes, err := json.Marshal(e)
+			if err != nil {
+				// don't need special message for internal server error, at least don't need to be returned to the client
+				utils.ResponseError(w, utils.HttpError{
+					Code:       http.StatusInternalServerError,
+					LogMessage: fmt.Sprintf("failed to marshal JSON: %v", err),
+				})
+				break OuterLoop
+			}
+			sb := strings.Builder{}
+			sb.WriteString(fmt.Sprintf("event: %s\n", "simulation-event"))
+			sb.WriteString(fmt.Sprintf("data: %v\n\n", string(jsonBytes)))
+			fmt.Fprint(w, sb.String())
+			flusher.Flush()
+		}
+	}
+
+	// remove the listener from the map (code reach here only in 2 conditions: user disconnect or simulation completed)
+	simulationUpdateListenerLock.Lock()
+	// closing is up to this call anyways, just a safety precaution
+	if _, ok = <-updateCh; !ok {
+		close(updateCh)
+	}
+	delete(simulationUpdateListeners, idInt)
+	simulationUpdateListenerLock.Unlock()
+}
+
 // should not be called by client (stream is handled by start simulation)
 func streamSimulationUpdate(id int) {
 	utils.UseCoreGRPCClient(func(client core_pb.MarcomServiceClient) {
@@ -293,7 +409,7 @@ func streamSimulationUpdate(id int) {
 			}
 			if cycleId, err := models.SimulationModel.GetSimulationCycleIdBySimCycle(int(simulationEvent.SimulationId), int(simulationEvent.Cycle)); err != nil {
 				if errors.Is(err, sql.ErrNoRows) {
-					err := models.SimulationModel.NewSimulationCycle(int(simulationEvent.SimulationId), models.SimulationCycle{
+					id, err := models.SimulationModel.NewSimulationCycle(int(simulationEvent.SimulationId), models.SimulationCycle{
 						CycleNumber:  int(simulationEvent.Cycle),
 						SimulationId: int(simulationEvent.SimulationId),
 					})
@@ -301,7 +417,7 @@ func streamSimulationUpdate(id int) {
 						slog.Error(fmt.Sprintf("failed to create cycle of simulation: %v", err))
 						continue
 					}
-					err = models.SimulationModel.NewSimulationEvent(cycleId, dbSimulationEvent)
+					err = newSimulationEventWithUpdate(int(simulationEvent.SimulationId), id, dbSimulationEvent)
 					if err != nil {
 						slog.Error(fmt.Sprintf("failed to create event of simulation cycle: %v", err))
 						continue
@@ -311,7 +427,7 @@ func streamSimulationUpdate(id int) {
 					continue
 				}
 			} else {
-				err := models.SimulationModel.NewSimulationEvent(cycleId, dbSimulationEvent)
+				err := newSimulationEventWithUpdate(int(simulationEvent.SimulationId), cycleId, dbSimulationEvent)
 				if err != nil {
 					slog.Error(fmt.Sprintf("failed to create event of simulation cycle: %v", err))
 					continue
@@ -319,4 +435,26 @@ func streamSimulationUpdate(id int) {
 			}
 		}
 	})
+	// I guess might need to send a signal to notify complete
+	simulationUpdateListeners[id].simulationUpdateEnd <- struct{}{}
+}
+
+// creates new simulation event that also handles sending update to listener (if any)
+func newSimulationEventWithUpdate(simId, cycleId int, ev models.SimulationEvent) error {
+	id, err := models.SimulationModel.NewSimulationEvent(cycleId, ev)
+	if err != nil {
+		return err
+	}
+
+	ev.ID = id
+	// check if there is any listener of this event, if there is, check if it is open and send updates to it
+	if ch, ok := simulationUpdateListeners[simId]; ok {
+		if _, ok = <-ch.simulationUpdateListener; ok {
+			ch.simulationUpdateListener <- ComplexSimulationEvent{
+				SimulationEvent: ev,
+				CycleId:         cycleId,
+			}
+		}
+	}
+	return nil
 }
