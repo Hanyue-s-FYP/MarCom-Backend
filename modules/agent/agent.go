@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"strconv"
 
@@ -98,24 +99,24 @@ func GetAllAgents(w http.ResponseWriter, r *http.Request) (*modules.SliceWrapper
 }
 
 func GetAllAgentsByBusiness(w http.ResponseWriter, r *http.Request) (*modules.SliceWrapper[models.Agent], error) {
-    // id of the business accessible via route variable {id}
-    id := r.PathValue("id")
-    if id == "" {
-        return nil, utils.HttpError{
-            Code:       http.StatusNotFound,
-            Message:    "Expected ID in path, found empty string",
-            LogMessage: "unexpected empty string in request when matching wildcard {id}",
-        }
-    }
+	// id of the business accessible via route variable {id}
+	id := r.PathValue("id")
+	if id == "" {
+		return nil, utils.HttpError{
+			Code:       http.StatusNotFound,
+			Message:    "Expected ID in path, found empty string",
+			LogMessage: "unexpected empty string in request when matching wildcard {id}",
+		}
+	}
 
-    businessID, err := strconv.Atoi(id)
-    if err != nil {
-        return nil, utils.HttpError{
-            Code:       http.StatusInternalServerError,
-            Message:    "Failed to parse business ID from request",
-            LogMessage: fmt.Sprintf("failed to parse business ID from request: %v", err),
-        }
-    }
+	businessID, err := strconv.Atoi(id)
+	if err != nil {
+		return nil, utils.HttpError{
+			Code:       http.StatusInternalServerError,
+			Message:    "Failed to parse business ID from request",
+			LogMessage: fmt.Sprintf("failed to parse business ID from request: %v", err),
+		}
+	}
 
 	// if still at 0 means it is not populated (suiran not very likely this will happen)
 	if businessID == 0 {
@@ -146,6 +147,13 @@ func UpdateAgent(w http.ResponseWriter, r *http.Request) (*modules.ExecResponse,
 			Code:       http.StatusInternalServerError,
 			Message:    "Failed to update agent",
 			LogMessage: fmt.Sprintf("failed to parse agent JSON: %v", err),
+		}
+	}
+
+	if !canChangeAgent(agent.ID) {
+		return nil, utils.HttpError{
+			Code:    http.StatusConflict,
+			Message: "Failed to delete agent, agent is being referenced by other environments",
 		}
 	}
 
@@ -180,6 +188,13 @@ func DeleteAgent(w http.ResponseWriter, r *http.Request) (*modules.ExecResponse,
 		}
 	}
 
+	if !canChangeAgent(idInt) {
+		return nil, utils.HttpError{
+			Code:    http.StatusConflict,
+			Message: "Failed to delete agent, agent is being referenced by other environments",
+		}
+	}
+
 	if err = models.AgentModel.Delete(idInt); err != nil {
 		return nil, utils.HttpError{
 			Code:       http.StatusInternalServerError,
@@ -189,4 +204,19 @@ func DeleteAgent(w http.ResponseWriter, r *http.Request) (*modules.ExecResponse,
 	}
 
 	return &modules.ExecResponse{Message: "Successfully deleted agent"}, nil
+}
+
+// cannot delete or update if agent exist in any of the environments
+func canChangeAgent(id int) bool {
+	env, err := models.EnvironmentModel.GetEnvironmentWithAgent(id)
+	if err != nil {
+		slog.Error(fmt.Sprintf("failed to obtain environments with agent: %v", err))
+		return false
+	}
+
+	if env == nil {
+		return true
+	} else {
+		return false
+	}
 }
