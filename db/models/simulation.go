@@ -157,6 +157,37 @@ func (*simulationModel) Update(s Simulation) error {
 	return err
 }
 
+func (*simulationModel) Delete(id int) error {
+	// Begin a transaction
+	tx, err := db.GetDB().Begin()
+	if err != nil {
+		return err
+	}
+
+	deleteSimEvQuery := "DELETE FROM SimulationEvents WHERE cycle_id IN (SELECT id FROM SimulationCycles WHERE simulation_id = ?)"
+	_, err = tx.Exec(deleteSimEvQuery, id)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	deleteSimCycleQuery := "DELETE FROM SimulationCycles WHERE simulation_id = ?"
+	_, err = tx.Exec(deleteSimCycleQuery, id)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	deleteSimQuery := "DELETE FROM Simulations WHERE id = ?"
+	_, err = tx.Exec(deleteSimQuery, id)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
 func (*simulationModel) NewSimulationCycle(simId int, cycle SimulationCycle) (int, error) {
 	query := `
 		INSERT INTO SimulationCycles (simulation_id, cycle_number, time)

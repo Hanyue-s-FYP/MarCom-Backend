@@ -151,6 +151,13 @@ func UpdateSimulation(w http.ResponseWriter, r *http.Request) (*modules.ExecResp
 		}
 	}
 
+	if !canUpdateSimulation(simulation) {
+		return nil, utils.HttpError{
+			Code:    http.StatusConflict,
+			Message: "Failed to update simulation, simulation can not be running or completed or ran before",
+		}
+	}
+
 	if err := models.SimulationModel.Update(simulation); err != nil {
 		return nil, utils.HttpError{
 			Code:       http.StatusInternalServerError,
@@ -160,6 +167,37 @@ func UpdateSimulation(w http.ResponseWriter, r *http.Request) (*modules.ExecResp
 	}
 
 	return &modules.ExecResponse{Message: "Successfully update simulation"}, nil
+}
+
+func DeleteSimulation(w http.ResponseWriter, r *http.Request) (*modules.ExecResponse, error) {
+	// id of the environment shall be made accessible via route variable {id}
+	id := r.PathValue("id")
+	if id == "" {
+		return nil, utils.HttpError{
+			Code:       http.StatusNotFound,
+			Message:    "Expected ID in path, found empty string",
+			LogMessage: "unexpected empty string in request when matching wildcard {id}",
+		}
+	}
+
+	idInt, err := strconv.Atoi(id)
+	if err != nil {
+		return nil, utils.HttpError{
+			Code:       http.StatusInternalServerError,
+			Message:    "Failed to parse simulation ID from request",
+			LogMessage: fmt.Sprintf("failed to parse simulation ID from request: %v", err),
+		}
+	}
+
+	if err = models.SimulationModel.Delete(idInt); err != nil {
+		return nil, utils.HttpError{
+			Code:       http.StatusInternalServerError,
+			Message:    "Failed to delete simulation",
+			LogMessage: fmt.Sprintf("failed to delete simulation: %v", err),
+		}
+	}
+
+	return &modules.ExecResponse{Message: "Successfully deleted simulation"}, nil
 }
 
 type SimulationStartRequest struct {
@@ -559,4 +597,22 @@ func newSimulationEventWithUpdate(simId, cycleId int, ev models.SimulationEvent)
 	}
 	simulationUpdateListenerLock.Unlock()
 	return nil
+}
+
+// only can update simulation if simulation is not completed or is not running or has never been started (can see if there are any cycles already)
+func canUpdateSimulation(simulation models.Simulation) bool {
+	if simulation.Status == models.SimulationCompleted || simulation.Status == models.SimulationRunning {
+		return false
+	}
+
+	cycles, err := models.SimulationModel.GetSimulationCyclesBySimID(simulation.ID)
+	if err != nil {
+		slog.Error(fmt.Sprintf("failed to obtain simulation cycle by simulation id: %v", err))
+	}
+
+	if cycles == nil {
+		return true
+	} else {
+		return false
+	}
 }

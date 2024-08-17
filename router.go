@@ -30,7 +30,7 @@ func SetupRouter(r *http.ServeMux) {
 	r.HandleFunc("POST /login", utils.MakeHttpHandler(user.Login))
 	r.HandleFunc("POST /register-business", utils.MakeHttpHandler(user.RegisterBusiness, 201))
 	r.HandleFunc("GET /get-me", utils.MakeHttpHandler(user.GetMe))
-    r.HandleFunc("GET /check-username/{username}", utils.MakeHttpHandler(user.CheckUserWithUsername))
+	r.HandleFunc("GET /check-username/{username}", utils.MakeHttpHandler(user.CheckUserWithUsername))
 
 	// Business routes
 	r.HandleFunc("GET /business/{id}", utils.MakeHttpHandler(user.GetBusiness))
@@ -72,8 +72,7 @@ func SetupRouter(r *http.ServeMux) {
 	r.HandleFunc("GET /simulations/cycle/{id}", utils.MakeHttpHandler(simulation.GetSimulationCycleByCycleID)) // get specific cycle
 	r.HandleFunc("GET /simulations/start/{id}", utils.MakeHttpHandler(simulation.StartSimulation))
 	r.HandleFunc("GET /simulations/listen-for-event/{id}", simulation.ListenToSimulationUpdates)
-	// TODO
-	r.HandleFunc("DELETE /simulations/{id}", utils.MakeHttpHandler(simulation.UpdateSimulation))
+	r.HandleFunc("DELETE /simulations/{id}", utils.MakeHttpHandler(simulation.DeleteSimulation))
 
 	// handle images (load the path from config)
 	imgPrefix := fmt.Sprintf("/%s/", utils.GetConfig().IMG_FOLDER)
