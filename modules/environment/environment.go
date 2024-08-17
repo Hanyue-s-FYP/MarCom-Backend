@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"strconv"
 
@@ -241,6 +242,14 @@ func UpdateEnvironment(w http.ResponseWriter, r *http.Request) (*modules.ExecRes
 		}
 	}
 
+	// check if there are any simulation using this environment, if any, cannot delete
+	if !canChangeEnv(env.ID) {
+		return nil, utils.HttpError{
+			Code:    http.StatusConflict,
+			Message: "Failed to delete environment, environment is being referenced by some simulation",
+		}
+	}
+
 	if err := models.EnvironmentModel.Update(env); err != nil {
 		return nil, &utils.HttpError{
 			Code:       http.StatusInternalServerError,
@@ -272,6 +281,14 @@ func DeleteEnvironment(w http.ResponseWriter, r *http.Request) (*modules.ExecRes
 		}
 	}
 
+	// check if there are any simulation using this environment, if any, cannot delete
+	if !canChangeEnv(idInt) {
+		return nil, utils.HttpError{
+			Code:    http.StatusConflict,
+			Message: "Failed to delete environment, environment is being referenced by some simulation",
+		}
+	}
+
 	if err = models.EnvironmentModel.Delete(idInt); err != nil {
 		return nil, utils.HttpError{
 			Code:       http.StatusInternalServerError,
@@ -281,4 +298,18 @@ func DeleteEnvironment(w http.ResponseWriter, r *http.Request) (*modules.ExecRes
 	}
 
 	return &modules.ExecResponse{Message: "Successfully deleted environment"}, nil
+}
+
+// if any simulation is referencing the environment, the environment cannot be changed
+func canChangeEnv(envId int) bool {
+	simulations, err := models.SimulationModel.GetAllByEnvID(envId)
+	if err != nil {
+		slog.Error(fmt.Sprintf("failed to obtain simulations by environment ID: %v", err))
+		return false
+	}
+	if simulations == nil {
+		return true
+	} else {
+		return false
+	}
 }

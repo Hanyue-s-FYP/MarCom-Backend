@@ -78,6 +78,26 @@ func (*simulationModel) GetByID(id int) (*Simulation, error) {
 	return &simulation, nil
 }
 
+func (*simulationModel) GetAllByEnvID(envId int) ([]Simulation, error) {
+	var simulations []Simulation
+	query := `SELECT * FROM Simulations WHERE environment_id=?`
+	rows, err := db.GetDB().Query(query, envId)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var simulation Simulation
+		if err := rows.Scan(&simulation.ID, &simulation.Name, &simulation.MaxCycleCount, &simulation.IsPriceOptEnabled, &simulation.Status, &simulation.EnvironmentID, &simulation.BusinessID); err != nil {
+			return nil, err
+		}
+		simulations = append(simulations, simulation)
+	}
+
+	return simulations, nil
+}
+
 func (*simulationModel) GetAll() ([]Simulation, error) {
 	var simulations []Simulation
 	query := `SELECT * FROM Simulations`
