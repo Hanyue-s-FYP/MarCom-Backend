@@ -271,12 +271,33 @@ func GetBusiness(w http.ResponseWriter, r *http.Request) (*BusinessWithoutPasswo
 	}, nil
 }
 
-/*
-DisplayName: string;
-  BusinessType: string;
-  Description: string;
-  CoverPic?: File | string;
-*/
+func CheckUserWithUsername(w http.ResponseWriter, r *http.Request) (*UserWithoutPassword, error) {
+	username := r.PathValue("username")
+
+	// check if account already exist (username must be unique)
+	if user, err := models.BusinessModel.GetByUsername(username); user != nil {
+		return &UserWithoutPassword{
+			ID:          user.ID,
+			Username:    user.Username,
+			DisplayName: user.DisplayName,
+			Email:       user.Email,
+			Status:      user.Status,
+			PhoneNumber: user.PhoneNumber,
+		}, nil
+	} else if err != nil {
+		if errors.Is(err, models.ErrBusinessNotFound) {
+			return nil, nil // front end check error, no want use error
+		}
+		return nil, utils.HttpError{
+			Code:       http.StatusInternalServerError,
+			Message:    "Something unexpected happened when checking username uniqueness",
+			LogMessage: fmt.Sprintf("something failed when checking username uniqueness: %v", err),
+		}
+	}
+
+    // not very possible reach this point
+    return nil, nil
+}
 
 func UpdateBusiness(w http.ResponseWriter, r *http.Request) (*modules.ExecResponse, error) {
 	var business models.Business

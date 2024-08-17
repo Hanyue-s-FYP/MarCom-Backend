@@ -13,14 +13,20 @@ import (
 
 // creates all the necessary header and writes obj in JSON to the response
 func ResponseJSON[T any](w http.ResponseWriter, obj *T, statusCode int) {
-	jsonBytes, err := json.Marshal(*obj)
-	if err != nil {
-		// don't need special message for internal server error, at least don't need to be returned to the client
-		ResponseError(w, HttpError{
-			Code:       http.StatusInternalServerError,
-			LogMessage: fmt.Sprintf("failed to marshal JSON: %v", err),
-		})
-		return
+	var jsonBytes []byte
+	if obj == nil {
+		jsonBytes = []byte("null")
+	} else {
+        var err error
+		jsonBytes, err = json.Marshal(*obj)
+		if err != nil {
+			// don't need special message for internal server error, at least don't need to be returned to the client
+			ResponseError(w, HttpError{
+				Code:       http.StatusInternalServerError,
+				LogMessage: fmt.Sprintf("failed to marshal JSON: %v", err),
+			})
+			return
+		}
 	}
 	slog.Info(fmt.Sprintf("%d %s", statusCode, string(jsonBytes)))
 	w.Header().Set("Content-Type", "application/json")
