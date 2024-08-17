@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"strconv"
 
@@ -98,24 +99,24 @@ func GetAllProducts(w http.ResponseWriter, r *http.Request) (*modules.SliceWrapp
 }
 
 func GetAllProductsByBusiness(w http.ResponseWriter, r *http.Request) (*modules.SliceWrapper[models.Product], error) {
-    // id of the product accessible via route variable {id}
-    id := r.PathValue("id")
-    if id == "" {
-        return nil, utils.HttpError{
-            Code:       http.StatusNotFound,
-            Message:    "Expected ID in path, found empty string",
-            LogMessage: "unexpected empty string in request when matching wildcard {id}",
-        }
-    }
+	// id of the product accessible via route variable {id}
+	id := r.PathValue("id")
+	if id == "" {
+		return nil, utils.HttpError{
+			Code:       http.StatusNotFound,
+			Message:    "Expected ID in path, found empty string",
+			LogMessage: "unexpected empty string in request when matching wildcard {id}",
+		}
+	}
 
-    businessID, err := strconv.Atoi(id)
-    if err != nil {
-        return nil, utils.HttpError{
-            Code:       http.StatusInternalServerError,
-            Message:    "Failed to parse business ID from request",
-            LogMessage: fmt.Sprintf("failed to parse business ID from request: %v", err),
-        }
-    }
+	businessID, err := strconv.Atoi(id)
+	if err != nil {
+		return nil, utils.HttpError{
+			Code:       http.StatusInternalServerError,
+			Message:    "Failed to parse business ID from request",
+			LogMessage: fmt.Sprintf("failed to parse business ID from request: %v", err),
+		}
+	}
 
 	products, err := models.ProductModel.GetAllByBusinessID(businessID)
 	if err != nil {
@@ -136,6 +137,13 @@ func UpdateProduct(w http.ResponseWriter, r *http.Request) (*modules.ExecRespons
 			Code:       http.StatusInternalServerError,
 			Message:    "Failed to update product",
 			LogMessage: fmt.Sprintf("failed to parse product JSON: %v", err),
+		}
+	}
+
+	if !canChangeProduct(product.ID) {
+		return nil, utils.HttpError{
+			Code:    http.StatusConflict,
+			Message: "Failed to delete product, product is being referened in other environments",
 		}
 	}
 
@@ -170,6 +178,13 @@ func DeleteProduct(w http.ResponseWriter, r *http.Request) (*modules.ExecRespons
 		}
 	}
 
+	if !canChangeProduct(idInt) {
+		return nil, utils.HttpError{
+			Code:    http.StatusConflict,
+			Message: "Failed to delete product, product is being referened in other environments",
+		}
+	}
+
 	if err = models.ProductModel.Delete(idInt); err != nil {
 		return nil, utils.HttpError{
 			Code:       http.StatusInternalServerError,
@@ -179,4 +194,19 @@ func DeleteProduct(w http.ResponseWriter, r *http.Request) (*modules.ExecRespons
 	}
 
 	return &modules.ExecResponse{Message: "Successfully deleted product"}, nil
+}
+
+// cannot update or delete if product is used by other environment
+func canChangeProduct(id int) bool {
+	env, err := models.EnvironmentModel.GetEnvironmentWithProduct(id)
+	if err != nil {
+		slog.Error(fmt.Sprintf("failed to obtain environments with product: %v", err))
+		return false
+	}
+
+	if env == nil {
+		return true
+	} else {
+		return false
+	}
 }
