@@ -402,7 +402,7 @@ OuterLoop:
 		case <-updateEndCh:
 			slog.Info("sending stop signal to client")
 			sb := strings.Builder{}
-			sb.WriteString(fmt.Sprintf("event: %s\n", "simulation-complete"))
+			sb.WriteString(fmt.Sprintf("event: %s\n", "simulation-stopped"))
 			sb.WriteString(fmt.Sprintf("data: %v\n\n", "STOP"))
 			fmt.Fprint(w, sb.String())
 			flusher.Flush()
