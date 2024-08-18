@@ -17,6 +17,11 @@ type Environment struct {
 	BusinessID  int
 }
 
+type DashboardEnvironment struct {
+	Environment
+	SimulatedCount int
+}
+
 type environmentModel struct{}
 
 var EnvironmentModel *environmentModel
@@ -335,6 +340,62 @@ func (*environmentModel) GetEnvironmentWithAgent(agentId int) ([]Environment, er
 		envs = append(envs, *env)
 	}
 	return envs, nil
+}
+
+func (*environmentModel) GetDashboardData(businessId int) ([]DashboardEnvironment, error) {
+	query := `
+        SELECT 
+            e.id, e.name, e.description, e.business_id,
+            COUNT(s.id) as simulated_count
+        FROM 
+            Environments e
+        LEFT JOIN 
+            Simulations s ON e.id = s.environment_id
+  		WHERE 
+            e.business_id = ?      
+		GROUP BY 
+            e.id
+        ORDER BY 
+            simulated_count DESC
+        LIMIT 4;
+    `
+
+	rows, err := db.GetDB().Query(query, businessId)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var environments []DashboardEnvironment
+
+	for rows.Next() {
+		var de DashboardEnvironment
+		if err := rows.Scan(&de.ID, &de.Name, &de.Description, &de.BusinessID, &de.SimulatedCount); err != nil {
+			return nil, err
+		}
+
+		// Fetch associated agents and products using utility functions
+		agents, err := getAgentsByEnvironmentId(de.ID)
+		if err != nil {
+			return nil, err
+		}
+		products, err := getProductsByEnvironmentId(de.ID)
+		if err != nil {
+			return nil, err
+		}
+
+		// Populate the DashboardEnvironment struct
+		de.Agents = agents
+		de.Products = products
+
+		environments = append(environments, de)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return environments, nil
 }
 
 func getAgentsByEnvironmentId(id int) ([]Agent, error) {

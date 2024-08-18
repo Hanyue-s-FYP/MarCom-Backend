@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/Hanyue-s-FYP/Marcom-Backend/modules/agent"
+	"github.com/Hanyue-s-FYP/Marcom-Backend/modules/dashboard"
 	"github.com/Hanyue-s-FYP/Marcom-Backend/modules/environment"
 	"github.com/Hanyue-s-FYP/Marcom-Backend/modules/product"
 	"github.com/Hanyue-s-FYP/Marcom-Backend/modules/simulation"
@@ -35,6 +36,11 @@ func SetupRouter(r *http.ServeMux) {
 	// Business routes
 	r.HandleFunc("GET /business/{id}", utils.MakeHttpHandler(user.GetBusiness))
 	r.HandleFunc("PUT /business", utils.MakeHttpHandler(user.UpdateBusiness))
+
+	// Dashboard routes
+	r.HandleFunc("GET /dashboard/products", utils.MakeHttpHandler(dashboard.GetDashboardProduct))
+	r.HandleFunc("GET /dashboard/agents", utils.MakeHttpHandler(dashboard.GetDashboardAgent))
+	r.HandleFunc("GET /dashboard/environments", utils.MakeHttpHandler(dashboard.GetDashboardEnvironment))
 
 	// Product routes
 	r.HandleFunc("GET /products", utils.MakeHttpHandler(product.GetAllProducts))

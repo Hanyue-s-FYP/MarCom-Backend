@@ -17,6 +17,11 @@ type Product struct {
 	BusinessID  int
 }
 
+type DashboardProduct struct {
+	Product
+	InEnvironments int
+}
+
 type productModel struct{}
 
 var ProductModel *productModel
@@ -95,6 +100,47 @@ func (*productModel) GetAllByBusinessID(id int) ([]Product, error) {
 			return nil, err
 		}
 		products = append(products, product)
+	}
+
+	return products, nil
+}
+
+func (*productModel) GetDashboardData(businessId int) ([]DashboardProduct, error) {
+	query := `
+        SELECT 
+            p.id, p.name, p.description, p.research, p.price, p.cost, p.business_id,
+            COUNT(ep.environment_id) as in_environments
+        FROM 
+            Products p
+        LEFT JOIN 
+            EnvironmentProducts ep ON p.id = ep.product_id
+		WHERE 
+			p.business_id = ?
+		GROUP BY 
+            p.id
+        ORDER BY 
+            in_environments DESC
+        LIMIT 4;
+    `
+
+	rows, err := db.GetDB().Query(query, businessId)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var products []DashboardProduct
+
+	for rows.Next() {
+		var dp DashboardProduct
+		if err := rows.Scan(&dp.ID, &dp.Name, &dp.Description, &dp.Report, &dp.Price, &dp.Cost, &dp.BusinessID, &dp.InEnvironments); err != nil {
+			return nil, err
+		}
+		products = append(products, dp)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
 	}
 
 	return products, nil

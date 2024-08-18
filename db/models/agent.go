@@ -23,6 +23,11 @@ type AgentAttribute struct {
 	Value string
 }
 
+type DashboardAgent struct {
+	Agent
+	InEnvironment int
+}
+
 type agentModel struct{}
 
 var AgentModel *agentModel
@@ -150,6 +155,48 @@ func (*agentModel) GetAllByBusinessID(id int) ([]Agent, error) {
 		}
 		agent.Attributes = attrs
 		agents = append(agents, agent)
+	}
+
+	return agents, nil
+}
+
+// agent will have null []AgentAttributes as they are not used
+func (*agentModel) GetDashboardData(businessId int) ([]DashboardAgent, error) {
+	query := `
+        SELECT 
+            a.id, a.name, a.general_description, a.business_id,
+            COUNT(ea.environment_id) as in_environment
+        FROM 
+            Agents a
+        LEFT JOIN 
+            EnvironmentAgents ea ON a.id = ea.agent_id
+        WHERE 
+			a.business_id = ? 
+		GROUP BY 
+            a.id
+        ORDER BY 
+            in_environment DESC
+        LIMIT 4;
+    `
+
+	rows, err := db.GetDB().Query(query, businessId)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var agents []DashboardAgent
+
+	for rows.Next() {
+		var da DashboardAgent
+		if err := rows.Scan(&da.ID, &da.Name, &da.GeneralDescription, &da.BusinessID, &da.InEnvironment); err != nil {
+			return nil, err
+		}
+		agents = append(agents, da)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
 	}
 
 	return agents, nil

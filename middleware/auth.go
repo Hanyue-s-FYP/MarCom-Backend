@@ -18,20 +18,21 @@ import (
 var authRoutes []string = []string{
 	"/auth_test",    // just to test auth middleware is working, will remove
 	"/get-me",       // require token when getting themself
+	"/dashboard",    // everything related to dashboard
 	"/business",     // everything related to business
 	"/products",     // everything related to product should be authenticated with business id (for now, revisit to allow for investors)
 	"/agents",       // same for agent
 	"/environments", // same for environments
-    "/simulations",   // same for simulations
+	"/simulations",  // same for simulations
 }
 
 func Auth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-        // if is OPTIONS (preflight) then no need auth
-        if r.Method == "OPTIONS" {
-            next.ServeHTTP(w, r)
-            return
-        }
+		// if is OPTIONS (preflight) then no need auth
+		if r.Method == "OPTIONS" {
+			next.ServeHTTP(w, r)
+			return
+		}
 		// check if the route to be accessed requires authentication
 		if slices.ContainsFunc(authRoutes, func(route string) bool {
 			return strings.Contains(r.URL.Path, route)
