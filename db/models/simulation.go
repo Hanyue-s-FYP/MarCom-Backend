@@ -317,7 +317,6 @@ func (*simulationModel) NewSimulationEvent(cycleId int, event SimulationEvent) (
 	}
 }
 
-// TODO fetch all the simulation cycle of that
 func getSimulationEventByCycleID(cycleId int) ([]SimulationEvent, error) {
 	query := `
         SELECT id, event_type, event_description, agent_id

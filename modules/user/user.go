@@ -27,7 +27,6 @@ type JWTClaims struct {
 }
 
 // allows posting to this route to create a business account, validations are done at front end
-// TODO revisit when have more time and do backend validations as well
 func RegisterBusiness(w http.ResponseWriter, r *http.Request) (*modules.ExecResponse, error) {
 	var user models.Business
 
@@ -84,7 +83,6 @@ type LoginResponse struct {
 	Message string
 }
 
-// TODO handle multiple roles (xian complete business one ka lai do investor eh d)
 func Login(w http.ResponseWriter, r *http.Request) (*LoginResponse, error) {
 	// take body posted and check if any data in sqlite
 	var creds LoginUserForm
@@ -130,7 +128,8 @@ func Login(w http.ResponseWriter, r *http.Request) (*LoginResponse, error) {
 		},
 	})
 
-	if tokStr, err := token.SignedString([]byte("very-secure-key")); err != nil {
+	config := utils.GetConfig()
+	if tokStr, err := token.SignedString([]byte(config.JWT_SECRET_KEY)); err != nil {
 		return nil, utils.HttpError{
 			Code:       http.StatusInternalServerError,
 			Message:    "failed to generate jwt token",
@@ -295,8 +294,8 @@ func CheckUserWithUsername(w http.ResponseWriter, r *http.Request) (*UserWithout
 		}
 	}
 
-    // not very possible reach this point
-    return nil, nil
+	// not very possible reach this point
+	return nil, nil
 }
 
 func UpdateBusiness(w http.ResponseWriter, r *http.Request) (*modules.ExecResponse, error) {

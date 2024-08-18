@@ -47,8 +47,9 @@ func Auth(next http.Handler) http.Handler {
 					LogMessage: "no auth token",
 				})
 			} else {
+				config := utils.GetConfig()
 				jwtToken, err := jwt.ParseWithClaims(token[1], &user.JWTClaims{}, func(t *jwt.Token) (interface{}, error) {
-					return []byte("very-secure-key"), nil // TODO change to get secret key
+					return []byte(config.JWT_SECRET_KEY), nil
 				})
 				if err != nil {
 					if errors.Is(err, jwt.ErrTokenExpired) {

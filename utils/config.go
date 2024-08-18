@@ -16,6 +16,7 @@ type Config struct {
 	DB_PATH        string
 	GRPC_CORE_ADDR string
 	IMG_FOLDER     string
+	JWT_SECRET_KEY string
 }
 
 func loadConfig(filename string) error {
@@ -58,6 +59,7 @@ func NewConfig(filename string) *Config {
 			DB_PATH:        os.Getenv("DB_PATH"),
 			GRPC_CORE_ADDR: os.Getenv("GRPC_CORE_ADDR"),
 			IMG_FOLDER:     os.Getenv("IMG_FOLDER"),
+			JWT_SECRET_KEY: os.Getenv("JWT_SECRET_KEY"),
 		}
 	} else {
 		slog.Error(fmt.Sprintf("failed to load config, using default values: %v", err))
@@ -68,6 +70,7 @@ func NewConfig(filename string) *Config {
 			DB_PATH:        "marcom.db",
 			GRPC_CORE_ADDR: "localhost:50051",
 			IMG_FOLDER:     "img",
+			JWT_SECRET_KEY: "very-secret-key",
 		}
 	}
 	slog.Info(fmt.Sprintf("Config loaded: %s", config.String()))
