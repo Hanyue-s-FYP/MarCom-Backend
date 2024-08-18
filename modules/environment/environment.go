@@ -14,6 +14,7 @@ import (
 )
 
 type SimplifiedEnvironment struct {
+	ID             int
 	Name           string
 	SimulatedCount int
 }
@@ -187,8 +188,15 @@ func GetSimplifiedEnvironmentsWithProduct(w http.ResponseWriter, r *http.Request
 
 	var simplifiedEnv []SimplifiedEnvironment
 	for _, v := range envs {
-		// TODO populate simulated count
-		simplifiedEnv = append(simplifiedEnv, SimplifiedEnvironment{Name: v.Name, SimulatedCount: 0})
+		count, err := models.SimulationModel.GetEnvSimulatedCount(v.ID)
+		if err != nil {
+			return nil, utils.HttpError{
+				Code:       http.StatusInternalServerError,
+				Message:    "Failed to obtain environments with product",
+				LogMessage: fmt.Sprintf("failed to obtain environment simulation count: %v", err),
+			}
+		}
+		simplifiedEnv = append(simplifiedEnv, SimplifiedEnvironment{ID: v.ID, Name: v.Name, SimulatedCount: count})
 	}
 
 	return &modules.SliceWrapper[SimplifiedEnvironment]{Data: simplifiedEnv}, nil
@@ -225,8 +233,15 @@ func GetSimplifiedEnvironmentsWithAgent(w http.ResponseWriter, r *http.Request) 
 
 	var simplifiedEnv []SimplifiedEnvironment
 	for _, v := range envs {
-		// TODO populate simulated count
-		simplifiedEnv = append(simplifiedEnv, SimplifiedEnvironment{Name: v.Name, SimulatedCount: 0})
+		count, err := models.SimulationModel.GetEnvSimulatedCount(v.ID)
+		if err != nil {
+			return nil, utils.HttpError{
+				Code:       http.StatusInternalServerError,
+				Message:    "Failed to obtain environments with product",
+				LogMessage: fmt.Sprintf("failed to obtain environment simulation count: %v", err),
+			}
+		}
+		simplifiedEnv = append(simplifiedEnv, SimplifiedEnvironment{ID: v.ID, Name: v.Name, SimulatedCount: count})
 	}
 
 	return &modules.SliceWrapper[SimplifiedEnvironment]{Data: simplifiedEnv}, nil

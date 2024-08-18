@@ -188,6 +188,22 @@ func (*simulationModel) Delete(id int) error {
 	return tx.Commit()
 }
 
+func (*simulationModel) GetEnvSimulatedCount(envId int) (int, error) {
+	query := `
+        SELECT COUNT(id) AS simulation_count
+        FROM Simulations
+        WHERE environment_id = ?;
+    `
+
+	var simulationCount int
+	err := db.GetDB().QueryRow(query, envId).Scan(&simulationCount)
+	if err != nil {
+		return 0, err
+	}
+
+	return simulationCount, nil
+}
+
 func (*simulationModel) NewSimulationCycle(simId int, cycle SimulationCycle) (int, error) {
 	query := `
 		INSERT INTO SimulationCycles (simulation_id, cycle_number, time)
