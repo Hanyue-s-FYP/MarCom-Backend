@@ -1,6 +1,7 @@
 package product
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/Hanyue-s-FYP/Marcom-Backend/db/models"
 	"github.com/Hanyue-s-FYP/Marcom-Backend/modules"
+	core_pb "github.com/Hanyue-s-FYP/Marcom-Backend/proto"
 	"github.com/Hanyue-s-FYP/Marcom-Backend/utils"
 )
 
@@ -63,23 +65,9 @@ func GetProduct(w http.ResponseWriter, r *http.Request) (*models.Product, error)
 		}
 	}
 
-	product, err := models.ProductModel.GetByID(idInt)
+	product, err := getProduct(idInt)
 	if err != nil {
-		var retErr utils.HttpError
-		if errors.Is(err, models.ErrProductNotFound) {
-			retErr = utils.HttpError{
-				Code:       http.StatusNotFound,
-				Message:    "Product not found in database",
-				LogMessage: "product not found",
-			}
-		} else {
-			retErr = utils.HttpError{
-				Code:       http.StatusInternalServerError,
-				Message:    "Failed to obtain product",
-				LogMessage: fmt.Sprintf("failed to get product by id: %v", err),
-			}
-		}
-		return nil, retErr
+		return nil, err
 	}
 
 	return product, nil
@@ -196,6 +184,82 @@ func DeleteProduct(w http.ResponseWriter, r *http.Request) (*modules.ExecRespons
 	return &modules.ExecResponse{Message: "Successfully deleted product"}, nil
 }
 
+func GetProductCompetitorReport(w http.ResponseWriter, r *http.Request) (*models.Product, error) {
+	// id of the product accessible via route variable {id}
+	id := r.PathValue("id")
+	if id == "" {
+		return nil, utils.HttpError{
+			Code:       http.StatusNotFound,
+			Message:    "Expected ID in path, found empty string",
+			LogMessage: "unexpected empty string in request when matching wildcard {id}",
+		}
+	}
+
+	idInt, err := strconv.Atoi(id)
+	if err != nil {
+		return nil, utils.HttpError{
+			Code:       http.StatusInternalServerError,
+			Message:    "Failed to parse product ID from request",
+			LogMessage: fmt.Sprintf("failed to parse product ID from request: %v", err),
+		}
+	}
+
+	product, err := getProduct(idInt)
+	if err != nil {
+		return nil, err
+	}
+
+	var (
+		prodReport    string
+		prodReportErr error
+	)
+	utils.UseCoreGRPCClient(func(client core_pb.MarcomServiceClient) {
+		slog.Info("Sending product data to simulation server")
+		prodCompReport, err := client.ResearchProductCompetitor(context.Background(), &core_pb.Product{
+			Id:    int32(product.ID),
+			Name:  product.Name,
+			Desc:  product.Description,
+			Price: float32(product.Price),
+			Cost:  float32(product.Cost),
+		})
+		if err != nil {
+			prodReportErr = err
+			return
+		}
+		slog.Info("Product competitor report obtained")
+		jsonBytes, err := json.Marshal(struct {
+			Query  string
+			Report string
+		}{Query: prodCompReport.Query, Report: prodCompReport.Report})
+		if err != nil {
+			prodReportErr = err
+			return
+		}
+		prodReport = string(jsonBytes)
+	})
+
+	if prodReportErr != nil {
+		return nil, utils.HttpError{
+			Code:       http.StatusInternalServerError,
+			Message:    "Failed to generate product competitor report",
+			LogMessage: fmt.Sprintf("failed to obtain product competitor report: %v", prodReportErr),
+		}
+	}
+
+	product.Report = prodReport
+
+	err = models.ProductModel.Update(*product)
+	if err != nil {
+		return nil, utils.HttpError{
+			Code:       http.StatusInternalServerError,
+			Message:    "Failed to generate and update product competitor report",
+			LogMessage: fmt.Sprintf("failed to update product: %v", err),
+		}
+	}
+
+	return product, nil
+}
+
 // cannot update or delete if product is used by other environment
 func canChangeProduct(id int) bool {
 	env, err := models.EnvironmentModel.GetEnvironmentWithProduct(id)
@@ -209,4 +273,27 @@ func canChangeProduct(id int) bool {
 	} else {
 		return false
 	}
+}
+
+func getProduct(id int) (*models.Product, error) {
+	product, err := models.ProductModel.GetByID(id)
+	if err != nil {
+		var retErr utils.HttpError
+		if errors.Is(err, models.ErrProductNotFound) {
+			retErr = utils.HttpError{
+				Code:       http.StatusNotFound,
+				Message:    "Product not found in database",
+				LogMessage: "product not found",
+			}
+		} else {
+			retErr = utils.HttpError{
+				Code:       http.StatusInternalServerError,
+				Message:    "Failed to obtain product",
+				LogMessage: fmt.Sprintf("failed to get product by id: %v", err),
+			}
+		}
+		return nil, retErr
+	}
+
+	return product, nil
 }

@@ -11,6 +11,7 @@ type Product struct {
 	ID          int
 	Name        string
 	Description string
+	Report      string // json containing key: Query, Report
 	Price       float64
 	Cost        float64
 	BusinessID  int
@@ -33,14 +34,14 @@ var ErrProductNotFound error = errors.New("product not found")
 
 func (*productModel) GetByID(id int) (*Product, error) {
 	query := `
-		SELECT id, name, description, price, cost, business_id
+		SELECT id, name, description, price, cost, research, business_id
 		FROM Products
 		WHERE id = ?
 	`
 	row := db.GetDB().QueryRow(query, id)
 
 	var product Product
-	err := row.Scan(&product.ID, &product.Name, &product.Description, &product.Price, &product.Cost, &product.BusinessID)
+	err := row.Scan(&product.ID, &product.Name, &product.Description, &product.Price, &product.Cost, &product.Report, &product.BusinessID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrProductNotFound
@@ -103,10 +104,10 @@ func (*productModel) GetAllByBusinessID(id int) ([]Product, error) {
 func (*productModel) Update(p Product) error {
 	query := `
 		UPDATE Products
-		SET name = ?, description = ?, price = ?, cost = ?, business_id = ?
+		SET name = ?, description = ?, price = ?, cost = ?, research = ?, business_id = ?
 		WHERE id = ?
 	`
-	_, err := db.GetDB().Exec(query, p.Name, p.Description, p.Price, p.Cost, p.BusinessID, p.ID)
+	_, err := db.GetDB().Exec(query, p.Name, p.Description, p.Price, p.Cost, p.Report, p.BusinessID, p.ID)
 	return err
 }
 

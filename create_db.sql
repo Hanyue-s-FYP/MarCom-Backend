@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS Products (
     description TEXT NOT NULL,
     price REAL NOT NULL,
     cost REAL NOT NULL,
-    research TEXT,
+    research TEXT NOT NULL DEFAULT '',
     business_id INTEGER NOT NULL,
     FOREIGN KEY (business_id) REFERENCES Businesses(id)
 );

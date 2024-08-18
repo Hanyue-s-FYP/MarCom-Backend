@@ -43,6 +43,7 @@ func SetupRouter(r *http.ServeMux) {
 	r.HandleFunc("POST /products", utils.MakeHttpHandler(product.CreateProduct))
 	r.HandleFunc("PUT /products", utils.MakeHttpHandler(product.UpdateProduct))
 	r.HandleFunc("DELETE /products/{id}", utils.MakeHttpHandler(product.DeleteProduct))
+	r.HandleFunc("GET /products/report/{id}", utils.MakeHttpHandler(product.GetProductCompetitorReport))
 
 	// Agent routes
 	r.HandleFunc("GET /agents", utils.MakeHttpHandler(agent.GetAllAgents))
@@ -68,12 +69,12 @@ func SetupRouter(r *http.ServeMux) {
 	r.HandleFunc("GET /business-simulations/{id}", utils.MakeHttpHandler(simulation.GetSimulationsByBusinessID))
 	r.HandleFunc("POST /simulations", utils.MakeHttpHandler(simulation.CreateSimulation))
 	r.HandleFunc("PUT /simulations", utils.MakeHttpHandler(simulation.UpdateSimulation))
+	r.HandleFunc("DELETE /simulations/{id}", utils.MakeHttpHandler(simulation.DeleteSimulation))
 	r.HandleFunc("GET /simulations/cycles/{id}", utils.MakeHttpHandler(simulation.GetSimulationCyclesBySimID))
 	r.HandleFunc("GET /simulations/cycle/{id}", utils.MakeHttpHandler(simulation.GetSimulationCycleByCycleID)) // get specific cycle
 	r.HandleFunc("GET /simulations/start/{id}", utils.MakeHttpHandler(simulation.StartSimulation))
 	r.HandleFunc("GET /simulations/pause/{id}", utils.MakeHttpHandler(simulation.PauseSimulation))
 	r.HandleFunc("GET /simulations/listen-for-event/{id}", simulation.ListenToSimulationUpdates)
-	r.HandleFunc("DELETE /simulations/{id}", utils.MakeHttpHandler(simulation.DeleteSimulation))
 
 	// handle images (load the path from config)
 	imgPrefix := fmt.Sprintf("/%s/", utils.GetConfig().IMG_FOLDER)
