@@ -143,7 +143,7 @@ func UpdateProduct(w http.ResponseWriter, r *http.Request) (*modules.ExecRespons
 	if !canChangeProduct(product.ID) {
 		return nil, utils.HttpError{
 			Code:    http.StatusConflict,
-			Message: "Failed to delete product, product is being referened in other environments",
+			Message: "Failed to delete product, product is being referenced in other environments",
 		}
 	}
 
