@@ -498,8 +498,57 @@ func GetSimulationCycleByCycleID(w http.ResponseWriter, r *http.Request) (*model
 	return simCycle, nil
 }
 
+func PauseSimulation(w http.ResponseWriter, r *http.Request) (*modules.ExecResponse, error) {
+	id := r.PathValue("id")
+	if id == "" {
+		return nil, utils.HttpError{
+			Code:       http.StatusNotFound,
+			Message:    "Expected ID in path, found empty string",
+			LogMessage: "unexpected empty string in request when matching wildcard {id}",
+		}
+	}
+
+	idInt, err := strconv.Atoi(id)
+	if err != nil {
+		return nil, utils.HttpError{
+			Code:       http.StatusInternalServerError,
+			Message:    "Failed to parse simulation ID from request",
+			LogMessage: fmt.Sprintf("failed to parse simulation ID from request: %v", err),
+		}
+	}
+
+	var (
+		pauseSimulationMessage string
+		pauseSimulationErr     error
+	)
+	utils.UseCoreGRPCClient(func(client core_pb.MarcomServiceClient) {
+		slog.Info("Sending pause request to grpc server")
+		pauseSimulationResp, err := client.PauseSimulation(context.Background(), &core_pb.PauseRequest{
+			SimulationId: int32(idInt),
+		})
+		if err != nil {
+			pauseSimulationErr = err
+			return
+		}
+		pauseSimulationMessage = pauseSimulationResp.Message
+	})
+
+	if pauseSimulationErr != nil {
+		return nil, utils.HttpError{
+			Code:       http.StatusInternalServerError,
+			Message:    "Failed to pause simulation",
+			LogMessage: fmt.Sprintf("failed to send pause simulation request to grpc server: %v", pauseSimulationErr),
+		}
+	}
+
+	// in case
+
+	return &modules.ExecResponse{Message: pauseSimulationMessage}, nil
+}
+
 // should not be called by client (stream is handled by start simulation)
 func streamSimulationUpdate(id int) {
+	isComplete := false
 	utils.UseCoreGRPCClient(func(client core_pb.MarcomServiceClient) {
 		slog.Info("Requesting StreamUpdates from grpc server")
 		stream, err := client.StreamSimulationUpdates(context.Background(), &core_pb.StreamRequest{SimulationId: int32(id)})
@@ -516,6 +565,10 @@ func streamSimulationUpdate(id int) {
 				break
 			}
 			slog.Info(fmt.Sprintf("Got event from simulation server: %v", simulationEvent))
+			if simulationEvent.Action == "COMPLETE" {
+				isComplete = true
+				break
+			}
 			dbSimulationEvent := models.SimulationEvent{
 				EventType:        models.SimulationEventTypeMapper(simulationEvent.Action),
 				EventDescription: simulationEvent.Content,
@@ -556,21 +609,32 @@ func streamSimulationUpdate(id int) {
 			}
 		}
 	})
-	slog.Info(fmt.Sprintf("Simulation with ID %d completed", id))
+
 	sim, err := models.SimulationModel.GetByID(id)
 	if err != nil {
 		slog.Error(fmt.Sprintf("failed to obtain simulation: %v", err))
 		return
 	}
+	if isComplete {
+		slog.Info(fmt.Sprintf("Simulation with ID %d completed", id))
 
-	sim.Status = models.SimulationCompleted
-	err = models.SimulationModel.Update(*sim)
-	if err != nil {
-		slog.Error(fmt.Sprintf("failed to update simulation status: %v", err))
-		return
+		sim.Status = models.SimulationCompleted
+		err = models.SimulationModel.Update(*sim)
+		if err != nil {
+			slog.Error(fmt.Sprintf("failed to update simulation status: %v", err))
+			return
+		}
+	} else {
+		slog.Info(fmt.Sprintf("Simulation with ID %d stopped streaming", id))
+
+		sim.Status = models.SimulationIdle
+		err = models.SimulationModel.Update(*sim)
+		if err != nil {
+			slog.Error(fmt.Sprintf("failed to update simulation status: %v", err))
+			return
+		}
 	}
-
-	// I guess might need to send a signal to notify complete
+	// I guess might need to send a signal to notify no more updates coming
 	simulationUpdateListenerLock.Lock() // it might occur that the map is being deleted when this happened, so lock first
 	// check if there is any listener of this event, if there is, check if it is open and send updates to it
 	if ch, ok := simulationUpdateListeners[id]; ok {

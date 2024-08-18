@@ -71,6 +71,7 @@ func SetupRouter(r *http.ServeMux) {
 	r.HandleFunc("GET /simulations/cycles/{id}", utils.MakeHttpHandler(simulation.GetSimulationCyclesBySimID))
 	r.HandleFunc("GET /simulations/cycle/{id}", utils.MakeHttpHandler(simulation.GetSimulationCycleByCycleID)) // get specific cycle
 	r.HandleFunc("GET /simulations/start/{id}", utils.MakeHttpHandler(simulation.StartSimulation))
+	r.HandleFunc("GET /simulations/pause/{id}", utils.MakeHttpHandler(simulation.PauseSimulation))
 	r.HandleFunc("GET /simulations/listen-for-event/{id}", simulation.ListenToSimulationUpdates)
 	r.HandleFunc("DELETE /simulations/{id}", utils.MakeHttpHandler(simulation.DeleteSimulation))
 
