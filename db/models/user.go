@@ -192,3 +192,40 @@ func (*userModel) GetByID(id int) (*User, error) {
 
 	return &user, nil
 }
+
+func (*userModel) GetByUsername(username string) (*User, error) {
+	query := `
+			SELECT
+					u.id, u.username, u.password, u.display_name, u.email, u.status, u.phone_number
+			FROM
+					Users u
+			WHERE
+					u.username = ?
+    `
+	row := db.GetDB().QueryRow(query, username)
+	var user User
+	err := row.Scan(
+		&user.ID, &user.Username, &user.Password, &user.DisplayName,
+		&user.Email, &user.Status, &user.PhoneNumber,
+	)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrUserNotFound
+		}
+		return nil, err
+	}
+
+	return &user, nil
+}
+
+func (*userModel) Update(u User) error {
+	query := `
+        UPDATE Users
+        SET username = ?, password = ?, display_name = ?, email = ?, status = ?, phone_number = ?
+        WHERE id = ?
+    `
+
+	_, err := db.GetDB().Exec(query, u.Username, u.Password, u.DisplayName, u.Email, u.Status, u.PhoneNumber, u.ID)
+	return err
+
+}

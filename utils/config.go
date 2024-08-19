@@ -17,6 +17,11 @@ type Config struct {
 	GRPC_CORE_ADDR string
 	IMG_FOLDER     string
 	JWT_SECRET_KEY string
+    FRONT_END_ADDR string
+	SMTP_ADDR      string
+	SMTP_PORT      string
+	SMTP_EMAIL     string
+	SMTP_PW        string
 }
 
 func loadConfig(filename string) error {
@@ -60,6 +65,11 @@ func NewConfig(filename string) *Config {
 			GRPC_CORE_ADDR: os.Getenv("GRPC_CORE_ADDR"),
 			IMG_FOLDER:     os.Getenv("IMG_FOLDER"),
 			JWT_SECRET_KEY: os.Getenv("JWT_SECRET_KEY"),
+            FRONT_END_ADDR: os.Getenv("FRONT_END_ADDR"),
+			SMTP_ADDR:      os.Getenv("SMTP_ADDR"),
+			SMTP_PORT:      os.Getenv("SMTP_PORT"),
+			SMTP_EMAIL:     os.Getenv("SMTP_EMAIL"),
+			SMTP_PW:        os.Getenv("SMTP_PW"),
 		}
 	} else {
 		slog.Error(fmt.Sprintf("failed to load config, using default values: %v", err))
@@ -71,9 +81,20 @@ func NewConfig(filename string) *Config {
 			GRPC_CORE_ADDR: "localhost:50051",
 			IMG_FOLDER:     "img",
 			JWT_SECRET_KEY: "very-secret-key",
+            FRONT_END_ADDR: "http://localhost:5173",
+			SMTP_ADDR:      "",
+			SMTP_PORT:      "",
+			SMTP_EMAIL:     "",
+			SMTP_PW:        "",
 		}
 	}
 	slog.Info(fmt.Sprintf("Config loaded: %s", config.String()))
+
+	// if cant load SMTP stuffs, panic
+	if config.SMTP_ADDR == "" || config.SMTP_PORT == "" || config.SMTP_EMAIL == "" || config.SMTP_PW == "" {
+		slog.Error("SMTP not configured")
+		panic("SMTP not configured")
+	}
 
 	// create img dir if not exists
 	imgPath := filepath.Join(".", config.IMG_FOLDER)

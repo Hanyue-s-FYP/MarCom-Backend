@@ -371,10 +371,167 @@ func UpdateBusiness(w http.ResponseWriter, r *http.Request) (*modules.ExecRespon
 	return &modules.ExecResponse{Message: "Successfully updated business"}, nil
 }
 
+type ForgetPasswordData struct {
+	Username string
+	Email    string
+}
+
+type ForgetPasswordClaims struct {
+	Username string
+	UserID   int
+	jwt.RegisteredClaims
+}
+
+func ForgetPassword(w http.Response, r *http.Request) (*modules.ExecResponse, error) {
+	var forgetPasswordData ForgetPasswordData
+	if err := json.NewDecoder(r.Body).Decode(&forgetPasswordData); err != nil {
+		return nil, utils.HttpError{
+			Code:       http.StatusBadRequest,
+			Message:    "Failed to parse username and email from request",
+			LogMessage: fmt.Sprintf("failed to decode request for forget password data: %v", err),
+		}
+	}
+
+	user, err := models.UserModel.GetByUsername(forgetPasswordData.Username)
+	if err != nil {
+		if errors.Is(err, models.ErrUserNotFound) {
+			return nil, utils.HttpError{
+				Code:    http.StatusNotFound,
+				Message: "Username not found in the system",
+			}
+		} else {
+			return nil, utils.HttpError{
+				Code:       http.StatusInternalServerError,
+				Message:    "Failed to obtain user based on username",
+				LogMessage: fmt.Sprintf("failed to obtain user by username: %v", err),
+			}
+		}
+	}
+
+	// check if email match
+	if user.Email != forgetPasswordData.Email {
+		return nil, utils.HttpError{
+			Code:    http.StatusForbidden,
+			Message: "User is not registered under this email",
+		}
+	}
+
+	// generate jwt and send email
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, ForgetPasswordClaims{
+		Username: user.Username,
+		UserID:   user.ID,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(15 * time.Minute)), // token expires in 15 minutes
+		},
+	})
+
+	config := utils.GetConfig()
+	tokStr, err := token.SignedString([]byte(config.JWT_SECRET_KEY))
+	if err != nil {
+		return nil, utils.HttpError{
+			Code:       http.StatusInternalServerError,
+			Message:    "Failed to generate jwt token",
+			LogMessage: fmt.Sprintf("%v", err),
+		}
+	}
+
+	if err = utils.SendMail(user.Email, fmt.Sprintf("Hi %s, please reset your password through this link: %s/forget-password/%s", user.DisplayName, config.FRONT_END_ADDR, tokStr)); err != nil {
+		return nil, utils.HttpError{
+			Code:       http.StatusInternalServerError,
+			Message:    "Failed to send email",
+			LogMessage: fmt.Sprintf("failed to send email: %v", err),
+		}
+	}
+	return &modules.ExecResponse{Message: fmt.Sprintf("Successfully sent reset password link to %s", user.Email)}, nil
+}
+
+type ResetForgetPassword struct {
+	Password string
+    ForgetPasswordToken string
+}
+
+func ResetPassword(w http.ResponseWriter, r *http.Request) (*modules.ExecResponse, error) {
+    var resetForgetPassword ResetForgetPassword
+
+    if err := json.NewDecoder(r.Body).Decode(&resetForgetPassword); err != nil {
+        return nil, utils.HttpError{
+            Code: http.StatusInternalServerError,
+            Message: "Failed to parse request body",
+            LogMessage: fmt.Sprintf("failed to parse request body: %v", err),
+        }
+    }
+
+	config := utils.GetConfig()
+	jwtToken, err := jwt.ParseWithClaims(resetForgetPassword.ForgetPasswordToken, &ForgetPasswordClaims{}, func(t *jwt.Token) (interface{}, error) {
+		return []byte(config.JWT_SECRET_KEY), nil
+	})
+	if err != nil {
+		if errors.Is(err, jwt.ErrTokenExpired) {
+			return nil, utils.HttpError{
+				Code:       http.StatusUnauthorized,
+				Message:    "Reset password token expired, please login again",
+				LogMessage: err.Error(),
+			}
+		} else {
+			return nil, utils.HttpError{
+				Code:       http.StatusUnauthorized,
+				Message:    "Reset password token does not exist or is malformed",
+				LogMessage: err.Error(),
+			}
+		}
+	} else if claims, ok := jwtToken.Claims.(*ForgetPasswordClaims); ok {
+        if err := changePassword(claims.UserID, resetForgetPassword.Password); err != nil {
+            return nil, err        
+        }
+
+        return &modules.ExecResponse{Message: "Successfully reset password"}, nil
+	} else {
+		return nil, utils.HttpError{
+			Code:       http.StatusUnauthorized,
+			Message:    "Reset password token does not exist or is malformed",
+			LogMessage: "reset password token does not exist or is malformed: unable to parse jwt claims",
+		}
+	}
+}
+
 func hashPassword(pw string) (string, error) {
 	if hashed, err := bcrypt.GenerateFromPassword([]byte(pw), bcrypt.DefaultCost); err != nil {
 		return "", err
 	} else {
 		return string(hashed), nil
 	}
+}
+
+func changePassword(userId int, pw string) error {
+	user, err := models.UserModel.GetByID(userId)
+	if err != nil {
+		if errors.Is(err, models.ErrUserNotFound) {
+			return utils.HttpError{
+				Code:    http.StatusNotFound,
+				Message: "Username not found in the system",
+			}
+		} else {
+			return utils.HttpError{
+				Code:       http.StatusInternalServerError,
+				Message:    "Failed to obtain user based on user ID",
+				LogMessage: fmt.Sprintf("failed to obtain user by user ID: %v", err),
+			}
+		}
+	}
+
+	hashedPw, err := hashPassword(pw)
+	if err != nil {
+		return utils.HttpError{
+			Code:       http.StatusInternalServerError,
+			Message:    "Failed to create a business account",
+			LogMessage: fmt.Sprintf("failed to hash password: %v", err),
+		}
+	}
+	user.Password = hashedPw
+
+	if err = models.UserModel.Update(*user); err != nil {
+		return err
+	}
+
+	return nil
 }
