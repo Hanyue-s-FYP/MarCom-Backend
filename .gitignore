@@ -16,3 +16,6 @@ img/**
 # air (hot reload eh) used directory
 tmp/**
 
+# air config file
+.air.toml
+
