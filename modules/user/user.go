@@ -382,7 +382,7 @@ type ForgetPasswordClaims struct {
 	jwt.RegisteredClaims
 }
 
-func ForgetPassword(w http.Response, r *http.Request) (*modules.ExecResponse, error) {
+func ForgetPassword(w http.ResponseWriter, r *http.Request) (*modules.ExecResponse, error) {
 	var forgetPasswordData ForgetPasswordData
 	if err := json.NewDecoder(r.Body).Decode(&forgetPasswordData); err != nil {
 		return nil, utils.HttpError{
@@ -435,7 +435,7 @@ func ForgetPassword(w http.Response, r *http.Request) (*modules.ExecResponse, er
 		}
 	}
 
-	if err = utils.SendMail(user.Email, fmt.Sprintf("Hi %s, please reset your password through this link: %s/forget-password/%s", user.DisplayName, config.FRONT_END_ADDR, tokStr)); err != nil {
+	if err = utils.SendMail(user.Email, fmt.Sprintf("Hi %s, please reset your password through this link: %s/reset-password/%s\nPlease note that the link will expire in 15 minutes.", user.DisplayName, config.FRONT_END_ADDR, tokStr)); err != nil {
 		return nil, utils.HttpError{
 			Code:       http.StatusInternalServerError,
 			Message:    "Failed to send email",

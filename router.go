@@ -32,6 +32,8 @@ func SetupRouter(r *http.ServeMux) {
 	r.HandleFunc("POST /register-business", utils.MakeHttpHandler(user.RegisterBusiness, 201))
 	r.HandleFunc("GET /get-me", utils.MakeHttpHandler(user.GetMe))
 	r.HandleFunc("GET /check-username/{username}", utils.MakeHttpHandler(user.CheckUserWithUsername))
+	r.HandleFunc("POST /forget-password", utils.MakeHttpHandler(user.ForgetPassword))
+	r.HandleFunc("POST /reset-password", utils.MakeHttpHandler(user.ResetPassword))
 
 	// Business routes
 	r.HandleFunc("GET /business/{id}", utils.MakeHttpHandler(user.GetBusiness))
