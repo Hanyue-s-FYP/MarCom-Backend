@@ -6,27 +6,26 @@ import (
 	"net/smtp"
 )
 
-
 func SendMail(to, body string) error {
-    config := GetConfig()
-    from := config.SMTP_EMAIL
-    pass := config.SMTP_PW
-    host := config.SMTP_ADDR
-    port := config.SMTP_PORT
+	config := GetConfig()
+	from := config.SMTP_EMAIL
+	pass := config.SMTP_PW
+	host := config.SMTP_ADDR
+	port := config.SMTP_PORT
 
-    msg := "From: " + from + "\n" +
-        "To: " + to + "\n" +
-        "Subject: Hello there\n\n" +
-        body
+	msg := "From: " + from + "\n" +
+		"To: " + to + "\n" +
+		"Subject: Reset Password\n\n" +
+		body
 
-    err := smtp.SendMail(fmt.Sprintf("%s:%s", host, port),
-        smtp.PlainAuth("", from, pass, host),
-        from, []string{to}, []byte(msg))
+	err := smtp.SendMail(fmt.Sprintf("%s:%s", host, port),
+		smtp.PlainAuth("", from, pass, host),
+		from, []string{to}, []byte(msg))
 
-    if err != nil {
-        slog.Error(fmt.Sprintf("smtp error: %s", err))
-        return err
-    }
-    slog.Info("Successfully sended to " + to)
-    return nil
+	if err != nil {
+		slog.Error(fmt.Sprintf("smtp error: %s", err))
+		return err
+	}
+	slog.Info("Successfully sended to " + to)
+	return nil
 }
