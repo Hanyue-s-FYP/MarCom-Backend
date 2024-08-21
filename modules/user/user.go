@@ -435,7 +435,7 @@ func ForgetPassword(w http.ResponseWriter, r *http.Request) (*modules.ExecRespon
 		}
 	}
 
-	if err = utils.SendMail(user.Email, fmt.Sprintf("Hi %s, please reset your password through this link: %s/reset-password/%s\nPlease note that the link will expire in 15 minutes.", user.DisplayName, config.FRONT_END_ADDR, tokStr)); err != nil {
+	if err = utils.SendMail(user.Email, "Reset Password", fmt.Sprintf("Hi %s, please reset your password through this link: %s/reset-password/%s\nPlease note that the link will expire in 15 minutes. If you did not make this request, you may safely ignore this email.", user.DisplayName, config.FRONT_END_ADDR, tokStr)); err != nil {
 		return nil, utils.HttpError{
 			Code:       http.StatusInternalServerError,
 			Message:    "Failed to send email",
@@ -446,20 +446,20 @@ func ForgetPassword(w http.ResponseWriter, r *http.Request) (*modules.ExecRespon
 }
 
 type ResetForgetPassword struct {
-	Password string
-    ForgetPasswordToken string
+	Password            string
+	ForgetPasswordToken string
 }
 
 func ResetPassword(w http.ResponseWriter, r *http.Request) (*modules.ExecResponse, error) {
-    var resetForgetPassword ResetForgetPassword
+	var resetForgetPassword ResetForgetPassword
 
-    if err := json.NewDecoder(r.Body).Decode(&resetForgetPassword); err != nil {
-        return nil, utils.HttpError{
-            Code: http.StatusInternalServerError,
-            Message: "Failed to parse request body",
-            LogMessage: fmt.Sprintf("failed to parse request body: %v", err),
-        }
-    }
+	if err := json.NewDecoder(r.Body).Decode(&resetForgetPassword); err != nil {
+		return nil, utils.HttpError{
+			Code:       http.StatusInternalServerError,
+			Message:    "Failed to parse request body",
+			LogMessage: fmt.Sprintf("failed to parse request body: %v", err),
+		}
+	}
 
 	config := utils.GetConfig()
 	jwtToken, err := jwt.ParseWithClaims(resetForgetPassword.ForgetPasswordToken, &ForgetPasswordClaims{}, func(t *jwt.Token) (interface{}, error) {
@@ -480,11 +480,11 @@ func ResetPassword(w http.ResponseWriter, r *http.Request) (*modules.ExecRespons
 			}
 		}
 	} else if claims, ok := jwtToken.Claims.(*ForgetPasswordClaims); ok {
-        if err := changePassword(claims.UserID, resetForgetPassword.Password); err != nil {
-            return nil, err        
-        }
+		if err := changePassword(claims.UserID, resetForgetPassword.Password); err != nil {
+			return nil, err
+		}
 
-        return &modules.ExecResponse{Message: "Successfully reset password"}, nil
+		return &modules.ExecResponse{Message: "Successfully reset password"}, nil
 	} else {
 		return nil, utils.HttpError{
 			Code:       http.StatusUnauthorized,

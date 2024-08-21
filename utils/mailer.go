@@ -6,7 +6,7 @@ import (
 	"net/smtp"
 )
 
-func SendMail(to, body string) error {
+func SendMail(to, subject, body string) error {
 	config := GetConfig()
 	from := config.SMTP_EMAIL
 	pass := config.SMTP_PW
@@ -15,7 +15,7 @@ func SendMail(to, body string) error {
 
 	msg := "From: " + from + "\n" +
 		"To: " + to + "\n" +
-		"Subject: Reset Password\n\n" +
+		"Subject: " + subject + "\n\n" +
 		body
 
 	err := smtp.SendMail(fmt.Sprintf("%s:%s", host, port),
