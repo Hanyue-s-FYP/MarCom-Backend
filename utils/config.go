@@ -17,7 +17,7 @@ type Config struct {
 	GRPC_CORE_ADDR string
 	IMG_FOLDER     string
 	JWT_SECRET_KEY string
-    FRONT_END_ADDR string
+	FRONT_END_ADDR string
 	SMTP_ADDR      string
 	SMTP_PORT      string
 	SMTP_EMAIL     string
@@ -52,41 +52,43 @@ func loadConfig(filename string) error {
 var config Config
 
 func (config *Config) String() string {
-	return fmt.Sprintf("HOST: %s, PORT: %s, DB_PATH: %s, IMG_PATH: %s", config.HOST, config.PORT, config.DB_PATH, config.IMG_FOLDER)
+    // only log those not secret stuff
+	return fmt.Sprintf(
+		"HOST: %s, PORT: %s, DB_PATH: %s, IMG_PATH: %s, GRPC_CORE_ADDR: %s, FRONT_END_ADDR: %s, SMTP_ADDR: %s, SMTP_PORT: %s",
+		config.HOST,
+		config.PORT,
+		config.DB_PATH,
+		config.IMG_FOLDER,
+		config.GRPC_CORE_ADDR,
+		config.FRONT_END_ADDR,
+		config.SMTP_ADDR,
+		config.SMTP_PORT,
+	)
 }
 
+// if setup environment variables in system alrd, pass in empty string and will attempt to load environment variables from the system
 func NewConfig(filename string) *Config {
 	fmt.Printf("Loading Config from file `%s`\r\n", filename)
-	if err := loadConfig(filename); err == nil {
-		config = Config{
-			HOST:           os.Getenv("HOST"),
-			PORT:           os.Getenv("PORT"),
-			DB_PATH:        os.Getenv("DB_PATH"),
-			GRPC_CORE_ADDR: os.Getenv("GRPC_CORE_ADDR"),
-			IMG_FOLDER:     os.Getenv("IMG_FOLDER"),
-			JWT_SECRET_KEY: os.Getenv("JWT_SECRET_KEY"),
-            FRONT_END_ADDR: os.Getenv("FRONT_END_ADDR"),
-			SMTP_ADDR:      os.Getenv("SMTP_ADDR"),
-			SMTP_PORT:      os.Getenv("SMTP_PORT"),
-			SMTP_EMAIL:     os.Getenv("SMTP_EMAIL"),
-			SMTP_PW:        os.Getenv("SMTP_PW"),
+
+	if filename != "" {
+		err := loadConfig(filename)
+		if err != nil {
+			panic("failed to load environment variables from " + filename)
 		}
-	} else {
-		slog.Error(fmt.Sprintf("failed to load config, using default values: %v", err))
-		// failed to load config smh, just fallback to default (since rn no involve critical API keys)
-		config = Config{
-			HOST:           "localhost",
-			PORT:           "8080",
-			DB_PATH:        "marcom.db",
-			GRPC_CORE_ADDR: "localhost:50051",
-			IMG_FOLDER:     "img",
-			JWT_SECRET_KEY: "very-secret-key",
-            FRONT_END_ADDR: "http://localhost:5173",
-			SMTP_ADDR:      "",
-			SMTP_PORT:      "",
-			SMTP_EMAIL:     "",
-			SMTP_PW:        "",
-		}
+	}
+
+	config = Config{
+		HOST:           os.Getenv("HOST"),
+		PORT:           os.Getenv("PORT"),
+		DB_PATH:        os.Getenv("DB_PATH"),
+		GRPC_CORE_ADDR: os.Getenv("GRPC_CORE_ADDR"),
+		IMG_FOLDER:     os.Getenv("IMG_FOLDER"),
+		JWT_SECRET_KEY: os.Getenv("JWT_SECRET_KEY"),
+		FRONT_END_ADDR: os.Getenv("FRONT_END_ADDR"),
+		SMTP_ADDR:      os.Getenv("SMTP_ADDR"),
+		SMTP_PORT:      os.Getenv("SMTP_PORT"),
+		SMTP_EMAIL:     os.Getenv("SMTP_EMAIL"),
+		SMTP_PW:        os.Getenv("SMTP_PW"),
 	}
 	slog.Info(fmt.Sprintf("Config loaded: %s", config.String()))
 
