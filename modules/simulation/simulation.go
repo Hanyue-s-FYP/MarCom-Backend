@@ -140,6 +140,38 @@ func GetSimulationsByBusinessID(w http.ResponseWriter, r *http.Request) (*module
 	return &modules.SliceWrapper[models.Simulation]{Data: simulations}, nil
 }
 
+func GetSimulationsOfEnvID(w http.ResponseWriter, r *http.Request) (*modules.SliceWrapper[models.Simulation], error) {
+	// id of the environment accessible via route variable {id}
+	id := r.PathValue("id")
+	if id == "" {
+		return nil, utils.HttpError{
+			Code:       http.StatusNotFound,
+			Message:    "Expected ID in path, found empty string",
+			LogMessage: "unexpected empty string in request when matching wildcard {id}",
+		}
+	}
+
+	idInt, err := strconv.Atoi(id)
+	if err != nil {
+		return nil, utils.HttpError{
+			Code:       http.StatusInternalServerError,
+			Message:    "Failed to parse environment ID from request",
+			LogMessage: fmt.Sprintf("failed to parse environment ID from request: %v", err),
+		}
+	}
+
+	simulations, err := models.SimulationModel.GetAllByEnvID(idInt)
+	if err != nil {
+		return nil, utils.HttpError{
+			Code:       http.StatusInternalServerError,
+			Message:    "Failed to obtain simulations",
+			LogMessage: fmt.Sprintf("failed to obtain simulations by business id: %v", err),
+		}
+	}
+
+	return &modules.SliceWrapper[models.Simulation]{Data: simulations}, nil
+}
+
 func UpdateSimulation(w http.ResponseWriter, r *http.Request) (*modules.ExecResponse, error) {
 	var simulation models.Simulation
 

@@ -74,6 +74,7 @@ func SetupRouter(r *http.ServeMux) {
 	// Simulation routes
 	r.HandleFunc("GET /simulations", utils.MakeHttpHandler(simulation.GetAllSimulations))
 	r.HandleFunc("GET /simulations/{id}", utils.MakeHttpHandler(simulation.GetSimulation))
+	r.HandleFunc("GET /simulations/of-environment/{id}", utils.MakeHttpHandler(simulation.GetSimulationsOfEnvID))
 	r.HandleFunc("GET /business-simulations/{id}", utils.MakeHttpHandler(simulation.GetSimulationsByBusinessID))
 	r.HandleFunc("POST /simulations", utils.MakeHttpHandler(simulation.CreateSimulation))
 	r.HandleFunc("PUT /simulations", utils.MakeHttpHandler(simulation.UpdateSimulation))
