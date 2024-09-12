@@ -28,6 +28,15 @@ git clone https://github.com/Hanyue-s-FYP/MarCom-Backend.git
 go mod download
 ```
 
+### Create Database
+
+```sh
+# macOS/linux
+cat create_db.sql | sqlite3 marcom.db
+# windows
+sqlite3 marcom.db < .\create_db.sql
+```
+
 ### Compile and run
 > CGO_ENABLED=1 should be set when running the application
 
