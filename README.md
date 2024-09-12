@@ -29,7 +29,16 @@ go mod download
 ```
 
 ### Compile and run
+> CGO_ENABLED=1 should be set when running the application
 
 ```sh
+# build and run with temp binary
 go run .
+```
+Alternatively,
+```sh
+# build a binary and store it to the build folder
+go build -o build/MarCom_WebServer .
+# Execute the built binary
+MarCom_WebServer
 ```
